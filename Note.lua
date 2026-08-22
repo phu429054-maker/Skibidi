@@ -1450,7 +1450,7 @@ local function C_20()
 local script = G2L["20"];
 	queueteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
 	if queueteleport then
-		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/phu429054-maker/Hoangtt03/refs/heads/main/Backdoor-scanner'))()")
+		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/phu429054-maker/Hoangtt03/refs/heads/main/Backdoor-scanner.txt'))()")
 	end
 	
 	GUI=script.Parent.Frame
