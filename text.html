@@ -1,0 +1,305 @@
+export default {
+  async fetch(request) {
+    const ua = request.headers.get("user-agent") || "";
+    const isBrowser = /mozilla|chrome|safari|firefox|edge|opera/i.test(ua);
+
+    if (isBrowser) {
+      // ===== TRẢ VỀ HTML TROLL KHI MỞ BẰNG CHROME =====
+      return new Response(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PolSec</title>
+  <style>
+    body { margin:0; font-family:system-ui; background:#1a1e30; color:#fff; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .box { text-align:center; max-width:700px; padding:20px; }
+    pre { background:#121626; padding:16px; border-radius:10px; text-align:left; overflow:auto; }
+    .copy { position:absolute; top:8px; right:8px; background:#2a3150; color:#fff; border:0; border-radius:6px; padding:6px 10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>📜 Loadstring</h2>
+    <div style="position:relative">
+      <button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('code').innerText)">Copy</button>
+      <pre><code id="code">script_key = "KEY" -- Paste your key here
+loadstring(game:HttpGet("fucking guy mày đang cố lấy script tao 😂😂😂"))()</code></pre>
+    </div>
+  </div>
+</body>
+</html>`, {
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
+    }
+
+    // ===== TRẢ VỀ SCRIPT THẬT KHI EXECUTOR GỌI =====
+    const realScript = `-- made by hoangtt.03
+-- Upgraded by HOANGTT.03 AI: Extended Blocklist Edition
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+
+local CONFIG = {
+	GUI_COLOR = Color3.fromRGB(25, 25, 30),
+	TITLE_COLOR = Color3.fromRGB(40, 40, 50),
+	ACCENT_ON = Color3.fromRGB(46, 204, 113),
+	ACCENT_OFF = Color3.fromRGB(231, 76, 60),
+	TEXT_COLOR = Color3.fromRGB(255, 255, 255),
+	CORNER_RADIUS = UDim.new(0, 8)
+}
+
+local States = {
+	ANTI_ALL_ENABLED = true
+}
+
+-- Danh sách từ khóa cần chặn
+local BLACKLIST_KEYWORDS = {
+	"guard",
+	"guardp",
+	"rig",
+	"ragdoll",
+	"knockback",
+	"patrol",
+	"rouse"
+}
+
+-- Hàm kiểm tra xem tên có chứa bất kỳ từ khóa nào trong danh sách đen hay không
+local function MatchesBlacklist(name)
+	if not name then return false end
+	local nameLower = string.lower(name)
+	for _, kw in ipairs(BLACKLIST_KEYWORDS) do
+		if string.find(nameLower, kw) then
+			return true
+		end
+	end
+	return false
+end
+
+-- ==========================================
+-- 1. HOOK CHẶN REMOTE EVENT & REMOTE FUNCTION
+-- ==========================================
+local function ShouldBlockRemote(remoteInstance)
+	if not States.ANTI_ALL_ENABLED then return false end
+	if not remoteInstance then return false end
+
+	return MatchesBlacklist(remoteInstance.Name)
+end
+
+-- Hook __namecall (FireServer & InvokeServer)
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+	local method = getnamecallmethod()
+	
+	if (method == "FireServer" or method == "InvokeServer") then
+		if ShouldBlockRemote(self) then
+			if method == "InvokeServer" then
+				return nil
+			end
+			return
+		end
+	end
+	
+	return oldNamecall(self, ...)
+end)
+
+-- Hook trực tiếp nếu Executor hỗ trợ hookfunction
+if hookfunction then
+	local oldFireServer
+	oldFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
+		if ShouldBlockRemote(self) then
+			return
+		end
+		return oldFireServer(self, ...)
+	end)
+
+	local oldInvokeServer
+	oldInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
+		if ShouldBlockRemote(self) then
+			return nil
+		end
+		return oldInvokeServer(self, ...)
+	end)
+end
+
+-- ==========================================
+-- 2. XỬ LÝ ANTI-RAGDOLL TRÊN CLIENT
+-- ==========================================
+local function FixHumanoid(character)
+	if not character or not States.ANTI_ALL_ENABLED then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+		
+		local state = humanoid:GetState()
+		if state == Enum.HumanoidStateType.Ragdoll or state == Enum.HumanoidStateType.FallingDown then
+			humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		end
+	end
+end
+
+-- ==========================================
+-- 3. VOI HOÁ / TRIỆT HẠ MODEL TRONG WORKSPACE
+-- ==========================================
+local function NeutralizeTarget(instance)
+	if not States.ANTI_ALL_ENABLED then return end
+	if not instance then return end
+	
+	if MatchesBlacklist(instance.Name) then
+		if instance:IsA("Model") or instance:IsA("BasePart") or instance:IsA("Folder") then
+			for _, desc in ipairs(instance:GetDescendants()) do
+				if desc:IsA("BasePart") then
+					desc.CanTouch = false -- Vô hiệu hóa Hitbox gây sát thương/chạm
+					desc.CanCollide = false
+				elseif desc:IsA("Script") or desc:IsA("LocalScript") then
+					desc.Disabled = true
+				elseif desc:IsA("TouchTransmitter") or desc:IsA("Animator") then
+					desc:Destroy()
+				end
+			end
+			
+			local humanoid = instance:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.WalkSpeed = 0
+				humanoid.JumpPower = 0
+				humanoid.PlatformStand = true
+			end
+		end
+	end
+end
+
+-- Vòng lặp kiểm tra liên tục mỗi Frame
+RunService.Stepped:Connect(function()
+	if States.ANTI_ALL_ENABLED then
+		if LocalPlayer.Character then
+			FixHumanoid(LocalPlayer.Character)
+		end
+		for _, v in ipairs(Workspace:GetChildren()) do
+			NeutralizeTarget(v)
+		end
+	end
+end)
+
+Workspace.DescendantAdded:Connect(function(desc)
+	if States.ANTI_ALL_ENABLED then
+		NeutralizeTarget(desc)
+	end
+end)
+
+-- ==========================================
+-- 4. MOBILE GUI GỘP NÚT
+-- ==========================================
+local function CreateMobileGUI()
+	local existingGUI = game:GetService("CoreGui"):FindFirstChild("MobileUtilityGUI")
+		or LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("MobileUtilityGUI")
+	if existingGUI then existingGUI:Destroy() end
+
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "MobileUtilityGUI"
+	ScreenGui.ResetOnSpawn = false
+	
+	pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+	if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+	local MainFrame = Instance.new("Frame")
+	MainFrame.Name = "MainFrame"
+	MainFrame.Size = UDim2.new(0, 190, 0, 110)
+	MainFrame.Position = UDim2.new(0.5, -95, 0.2, 0)
+	MainFrame.BackgroundColor3 = CONFIG.GUI_COLOR
+	MainFrame.BorderSizePixel = 0
+	MainFrame.Active = true
+	MainFrame.Parent = ScreenGui
+
+	Instance.new("UICorner", MainFrame).CornerRadius = CONFIG.CORNER_RADIUS
+
+	local TitleBar = Instance.new("TextLabel")
+	TitleBar.Name = "TitleBar"
+	TitleBar.Size = UDim2.new(1, 0, 0, 30)
+	TitleBar.BackgroundColor3 = CONFIG.TITLE_COLOR
+	TitleBar.Text = "  hoangtt.03 😎"
+	TitleBar.TextColor3 = CONFIG.TEXT_COLOR
+	TitleBar.Font = Enum.Font.SourceSansBold
+	TitleBar.TextSize = 14
+	TitleBar.TextXAlignment = Enum.TextXAlignment.Left
+	TitleBar.Parent = MainFrame
+
+	Instance.new("UICorner", TitleBar).CornerRadius = CONFIG.CORNER_RADIUS
+
+	local AntiAllButton = Instance.new("TextButton")
+	AntiAllButton.Size = UDim2.new(1, -20, 0, 50)
+	AntiAllButton.Position = UDim2.new(0, 10, 0, 45)
+	AntiAllButton.BackgroundColor3 = CONFIG.ACCENT_ON
+	AntiAllButton.Text = "Anti Guard & Ragdoll: ON"
+	AntiAllButton.TextColor3 = CONFIG.TEXT_COLOR
+	AntiAllButton.Font = Enum.Font.SourceSansBold
+	AntiAllButton.TextSize = 13
+	AntiAllButton.TextWrapped = true
+	AntiAllButton.Parent = MainFrame
+
+	Instance.new("UICorner", AntiAllButton).CornerRadius = CONFIG.CORNER_RADIUS
+
+	AntiAllButton.MouseButton1Click:Connect(function()
+		States.ANTI_ALL_ENABLED = not States.ANTI_ALL_ENABLED
+		if States.ANTI_ALL_ENABLED then
+			AntiAllButton.Text = "Anti Guard & Ragdoll: ON"
+			AntiAllButton.BackgroundColor3 = CONFIG.ACCENT_ON
+		else
+			AntiAllButton.Text = "Anti Guard & Ragdoll: OFF"
+			AntiAllButton.BackgroundColor3 = CONFIG.ACCENT_OFF
+		end
+	end)
+
+	-- Drag Logic
+	local dragging, dragInput, dragStart, startPos
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X, 
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+
+	TitleBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = MainFrame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	TitleBar.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
+end
+
+CreateMobileGUI()
+`;
+
+    return new Response(realScript, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store"
+      }
+    });
+  }
+}
