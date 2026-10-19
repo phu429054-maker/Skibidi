@@ -1,0 +1,1356 @@
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local PG = LP:WaitForChild("PlayerGui")
+local UIS = game:GetService("UserInputService")
+local HS = game:GetService("HttpService")
+local RS = game:GetService("RunService")
+
+local SAVE_FOLDER = "GuiCreatorSaves"
+local canSave = (writefile and readfile and listfiles and makefolder) ~= nil
+if canSave then pcall(function() if isfolder and not isfolder(SAVE_FOLDER) then makefolder(SAVE_FOLDER) end end) end
+
+local UserFolder = PG:FindFirstChild("UserCreatedGuis")
+if not UserFolder then UserFolder = Instance.new("Folder") UserFolder.Name = "UserCreatedGuis" UserFolder.Parent = PG end
+
+local CREATABLE = {
+	"ScreenGui","Frame","TextButton","TextLabel","ImageLabel","ImageButton",
+	"ScrollingFrame","TextBox","UICorner","UIStroke","UIGradient","UIGridLayout",
+	"UIListLayout","UIPadding","UIAspectRatioConstraint","UIDragDetector",
+	"ViewportFrame","VideoFrame","LocalScript","ModuleScript","Script","Rainbow"
+}
+
+local PS = {
+	Common={{Name="Name",Type="string"},{Name="Visible",Type="boolean"},{Name="ZIndex",Type="number"},{Name="LayoutOrder",Type="number"}},
+	ScreenGui={{Name="Enabled",Type="boolean"},{Name="DisplayOrder",Type="number"},{Name="IgnoreGuiInset",Type="boolean"},{Name="ResetOnSpawn",Type="boolean"}},
+	GuiObject={{Name="Position",Type="UDim2"},{Name="Size",Type="UDim2"},{Name="AnchorPoint",Type="Vector2"},{Name="Rotation",Type="number"},{Name="BackgroundColor3",Type="Color3"},{Name="BackgroundTransparency",Type="number"},{Name="BorderSizePixel",Type="number"},{Name="BorderColor3",Type="Color3"},{Name="ClipsDescendants",Type="boolean"},{Name="Active",Type="boolean"},{Name="Selectable",Type="boolean"},{Name="AutoButtonColor",Type="boolean"},{Name="Modal",Type="boolean"},{Name="DragGui",Type="boolean"}},
+	Text={{Name="Text",Type="string"},{Name="TextColor3",Type="Color3"},{Name="TextSize",Type="number"},{Name="TextTransparency",Type="number"},{Name="TextScaled",Type="boolean"},{Name="TextWrapped",Type="boolean"},{Name="TextXAlignment",Type="string"},{Name="TextYAlignment",Type="string"},{Name="Font",Type="string"},{Name="TextStrokeColor3",Type="Color3"},{Name="TextStrokeTransparency",Type="number"},{Name="RichText",Type="boolean"}},
+	Image={{Name="Image",Type="string"},{Name="ImageColor3",Type="Color3"},{Name="ImageTransparency",Type="number"},{Name="ScaleType",Type="string"},{Name="TileSize",Type="UDim2"}},
+	UICorner={{Name="CornerRadius",Type="UDim"}},
+	UIStroke={{Name="Color",Type="Color3"},{Name="Thickness",Type="number"},{Name="Transparency",Type="number"},{Name="ApplyStrokeMode",Type="string"},{Name="LineJoinMode",Type="string"}},
+	UIGradient={{Name="Enabled",Type="boolean"},{Name="Rotation",Type="number"},{Name="Offset",Type="Vector2"},{Name="GradientColorStart",Type="GradientColorStart"},{Name="GradientColorEnd",Type="GradientColorEnd"}},
+	UIPadding={{Name="PaddingTop",Type="UDim"},{Name="PaddingBottom",Type="UDim"},{Name="PaddingLeft",Type="UDim"},{Name="PaddingRight",Type="UDim"}},
+	UIAspect={{Name="AspectRatio",Type="number"},{Name="AspectType",Type="string"},{Name="DominantAxis",Type="string"}},
+	UIDrag={{Name="Enabled",Type="boolean"},{Name="DragStyle",Type="string"},{Name="ResponseStyle",Type="string"},{Name="ActivatedCursorIcon",Type="string"},{Name="MaxForce",Type="number"},{Name="MaxTorque",Type="number"},{Name="DragStartDistance",Type="number"}},
+	LocalScript={{Name="Source",Type="CodeText"}},
+	ModuleScript={{Name="Source",Type="CodeText"}},
+	Script={{Name="Source",Type="CodeText"}},
+	Scrolling={{Name="ScrollBarThickness",Type="number"},{Name="ScrollBarImageColor3",Type="Color3"},{Name="ScrollBarImageTransparency",Type="number"},{Name="ScrollingDirection",Type="string"},{Name="AutomaticCanvasSize",Type="string"},{Name="CanvasSize",Type="UDim2"},{Name="ElasticBehavior",Type="string"}},
+	TextBox={{Name="PlaceholderText",Type="string"},{Name="PlaceholderColor3",Type="Color3"},{Name="ClearTextOnFocus",Type="boolean"},{Name="MultiLine",Type="boolean"},{Name="TextEditable",Type="boolean"}},
+	Viewport={{Name="ImageColor3",Type="Color3"},{Name="ImageTransparency",Type="number"}},
+	Video={{Name="Video",Type="string"},{Name="Loop",Type="boolean"},{Name="Volume",Type="number"},{Name="PlaybackSpeed",Type="number"}}
+}
+
+local ENUM_MAP = {}
+local function tryEnum(name, getter)
+	local ok, res = pcall(getter)
+	if ok and res then ENUM_MAP[name] = res end
+end
+tryEnum("Font", function() return Enum.Font end)
+tryEnum("TextXAlignment", function() return Enum.TextXAlignment end)
+tryEnum("TextYAlignment", function() return Enum.TextYAlignment end)
+tryEnum("ScaleType", function() return Enum.ScaleType end)
+tryEnum("ApplyStrokeMode", function() return Enum.ApplyStrokeMode end)
+tryEnum("LineJoinMode", function() return Enum.LineJoinMode end)
+tryEnum("AspectType", function() return Enum.AspectType end)
+tryEnum("DominantAxis", function() return Enum.DominantAxis end)
+tryEnum("ScrollingDirection", function() return Enum.ScrollingDirection end)
+tryEnum("AutomaticCanvasSize", function() return Enum.AutomaticSize end)
+tryEnum("ElasticBehavior", function() return Enum.ElasticBehavior end)
+tryEnum("DragStyle", function() return Enum.UIDragDetectorDragStyle end)
+tryEnum("ResponseStyle", function() return Enum.UIDragDetectorResponseStyle end)
+
+local function esc(s) return tostring(s):gsub("\\","\\\\"):gsub("\n","\\n"):gsub("\r","\\r"):gsub("\t","\\t"):gsub("\"","\\\"") end
+
+local function getGradColor(g, isEnd)
+	local ok, seq = pcall(function() return g.Color end)
+	if not ok or not seq then return Color3.fromRGB(255,255,255) end
+	local kp = seq.Keypoints
+	return (isEnd and kp[#kp] or kp[1]).Value
+end
+
+local function setGradColor(g, isEnd, c)
+	local ok, seq = pcall(function() return g.Color end)
+	if not ok or not seq then return end
+	local kp = seq.Keypoints
+	local nk = {}
+	for i, p in ipairs(kp) do
+		local t = (isEnd and i == #kp) or ((not isEnd) and i == 1)
+		table.insert(nk, ColorSequenceKeypoint.new(p.Time, t and c or p.Value))
+	end
+	g.Color = ColorSequence.new(nk)
+end
+
+local selObj, selNode, selFrame, activeMenu
+local propInputs = {}
+local clipObj = nil
+local isCut = false
+local undoH, redoH = {}, {}
+local maxH = 50
+local isPrev = false
+local prevGui = nil
+local hiddenGuis = {}
+local renderTree
+local rbConns = {}
+local prevDragConns = {}
+
+local function connectRB(frame)
+	if not frame or not frame:IsA("GuiObject") then return end
+	if rbConns[frame] then return end
+	local g = frame:FindFirstChildOfClass("UIGradient")
+	if not g then g = Instance.new("UIGradient") g.Rotation = 45 g.Parent = frame end
+	frame:SetAttribute("RainbowEnabled", true)
+	local o = 0
+	rbConns[frame] = RS.Heartbeat:Connect(function(dt)
+		if not frame or not frame.Parent then
+			if rbConns[frame] then rbConns[frame]:Disconnect() rbConns[frame] = nil end
+			return
+		end
+		if not g or not g.Parent then
+			g = frame:FindFirstChildOfClass("UIGradient")
+			if not g then return end
+		end
+		o = (o + dt * 0.3) % 1
+		local k = {}
+		for i = 0, 7 do
+			local t = i / 7
+			table.insert(k, ColorSequenceKeypoint.new(t, Color3.fromHSV((t + o) % 1, 1, 1)))
+		end
+		g.Color = ColorSequence.new(k)
+	end)
+end
+
+local function disconnectAllRB()
+	for _, c in pairs(rbConns) do pcall(function() c:Disconnect() end) end
+	rbConns = {}
+end
+
+local function attachPrevDrag(gui)
+	local d, ds, sp = false, nil, nil
+	local c1 = gui.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			d = true ds = i.Position sp = gui.Position
+		end
+	end)
+	local c2 = UIS.InputChanged:Connect(function(i)
+		if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			if not gui.Parent then d = false return end
+			local dl = i.Position - ds
+			gui.Position = UDim2.new(sp.X.Scale, sp.X.Offset + dl.X, sp.Y.Scale, sp.Y.Offset + dl.Y)
+		end
+	end)
+	local c3 = UIS.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end
+	end)
+	table.insert(prevDragConns, c1)
+	table.insert(prevDragConns, c2)
+	table.insert(prevDragConns, c3)
+end
+
+local function clearPrevDrag()
+	for _, c in ipairs(prevDragConns) do pcall(function() c:Disconnect() end) end
+	prevDragConns = {}
+end
+
+local G = {}
+local ModalGui = Instance.new("ScreenGui", PG)
+ModalGui.Name = "ModalGui" ModalGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ModalGui.IgnoreGuiInset = true ModalGui.DisplayOrder = 9999
+
+G.gui = Instance.new("ScreenGui", PG)
+G.gui.IgnoreGuiInset = true
+G.gui.Name = "Gui creator"
+G.gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+G.gui.DisplayOrder = 100
+
+G.explorer = Instance.new("Frame", G.gui)
+G.explorer.Active = true G.explorer.BorderSizePixel = 0
+G.explorer.BackgroundColor3 = Color3.fromRGB(45,45,45)
+G.explorer.Size = UDim2.new(0,220,0,380)
+G.explorer.Position = UDim2.new(0,20,0.2,0)
+Instance.new("UIStroke", G.explorer).Color = Color3.fromRGB(80,80,80)
+
+local top = Instance.new("Frame", G.explorer)
+top.BorderSizePixel = 0 top.BackgroundColor3 = Color3.fromRGB(35,35,35) top.Size = UDim2.new(1,0,0,24)
+local title = Instance.new("TextLabel", top)
+title.Size = UDim2.new(1,-115,1,0) title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,255,255) title.Text = " Explorer"
+title.TextXAlignment = Enum.TextXAlignment.Left title.Font = Enum.Font.SourceSansBold title.TextSize = 13
+
+local saveBtn = Instance.new("TextButton", top)
+saveBtn.Size = UDim2.new(0,50,0,18) saveBtn.Position = UDim2.new(1,-112,0,3)
+saveBtn.BackgroundColor3 = Color3.fromRGB(0,120,215) saveBtn.TextColor3 = Color3.fromRGB(255,255,255)
+saveBtn.Text = "Save" saveBtn.Font = Enum.Font.SourceSansBold saveBtn.TextSize = 11
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0,4)
+
+local toLuaBtn = Instance.new("TextButton", top)
+toLuaBtn.Size = UDim2.new(0,55,0,18) toLuaBtn.Position = UDim2.new(1,-58,0,3)
+toLuaBtn.BackgroundColor3 = Color3.fromRGB(0,150,70) toLuaBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toLuaBtn.Text = "To Lua" toLuaBtn.Font = Enum.Font.SourceSansBold toLuaBtn.TextSize = 11
+Instance.new("UICorner", toLuaBtn).CornerRadius = UDim.new(0,4)
+Instance.new("UIDragDetector", G.explorer)
+
+local scroll = Instance.new("ScrollingFrame", G.explorer)
+scroll.BorderSizePixel = 0 scroll.BackgroundColor3 = Color3.fromRGB(50,50,50)
+scroll.Size = UDim2.new(1,0,1,-56) scroll.Position = UDim2.new(0,0,0,24)
+scroll.ScrollBarThickness = 4 scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local uil = Instance.new("UIListLayout", scroll)
+uil.SortOrder = Enum.SortOrder.LayoutOrder uil.Padding = UDim.new(0,2)
+
+local prevBtn = Instance.new("TextButton", ModalGui)
+prevBtn.Size = UDim2.new(0,100,0,32) prevBtn.Position = UDim2.new(0.5,-50,0,10)
+prevBtn.BackgroundColor3 = Color3.fromRGB(30,30,30) prevBtn.TextColor3 = Color3.fromRGB(255,255,255)
+prevBtn.Text = "Preview" prevBtn.Font = Enum.Font.SourceSansBold prevBtn.TextSize = 13
+prevBtn.ZIndex = 9999999
+Instance.new("UICorner", prevBtn).CornerRadius = UDim.new(0,6)
+Instance.new("UIStroke", prevBtn).Color = Color3.fromRGB(0,120,215)
+
+local errPopup = nil
+local function showErr(msg)
+	if errPopup then errPopup:Destroy() end
+	errPopup = Instance.new("Frame", ModalGui)
+	errPopup.Size = UDim2.new(0,500,0,300) errPopup.Position = UDim2.new(0.5,-250,0.5,-150)
+	errPopup.BackgroundColor3 = Color3.fromRGB(30,15,15) errPopup.BorderSizePixel = 0
+	errPopup.ZIndex = 9999999 errPopup.Active = true
+	local st = Instance.new("UIStroke", errPopup)
+	st.Color = Color3.fromRGB(220,60,60) st.Thickness = 2
+	Instance.new("UICorner", errPopup).CornerRadius = UDim.new(0,8)
+	local t = Instance.new("TextLabel", errPopup)
+	t.Size = UDim2.new(1,-20,0,32) t.Position = UDim2.new(0,10,0,8)
+	t.BackgroundTransparency = 1 t.Text = "Lỗi cú pháp / runtime"
+	t.TextColor3 = Color3.fromRGB(255,100,100) t.TextXAlignment = Enum.TextXAlignment.Left
+	t.Font = Enum.Font.SourceSansBold t.TextSize = 16
+	local es = Instance.new("ScrollingFrame", errPopup)
+	es.Size = UDim2.new(1,-20,1,-90) es.Position = UDim2.new(0,10,0,44)
+	es.BackgroundColor3 = Color3.fromRGB(15,8,8) es.BorderSizePixel = 0
+	es.ScrollBarThickness = 4 es.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	local et = Instance.new("TextLabel", es)
+	et.Size = UDim2.new(1,-8,0,0) et.Position = UDim2.new(0,4,0,4)
+	et.BackgroundTransparency = 1 et.Text = tostring(msg)
+	et.TextColor3 = Color3.fromRGB(255,200,200) et.TextWrapped = true
+	et.TextXAlignment = Enum.TextXAlignment.Left et.TextYAlignment = Enum.TextYAlignment.Top
+	et.Font = Enum.Font.Code et.TextSize = 12 et.AutomaticSize = Enum.AutomaticSize.Y
+	local cb = Instance.new("TextButton", errPopup)
+	cb.Size = UDim2.new(0,120,0,32) cb.Position = UDim2.new(0.5,-60,1,-40)
+	cb.BackgroundColor3 = Color3.fromRGB(180,40,40) cb.TextColor3 = Color3.fromRGB(255,255,255)
+	cb.Text = "Đóng" cb.Font = Enum.Font.SourceSansBold cb.TextSize = 14
+	Instance.new("UICorner", cb).CornerRadius = UDim.new(0,4)
+	cb.MouseButton1Click:Connect(function() if errPopup then errPopup:Destroy() errPopup = nil end end)
+end
+
+local genLua
+local CP = {}
+local openSE
+
+local function enterPrev()
+	local ok, err = pcall(function()
+		local code = genLua()
+		local lf = loadstring or load
+		if not lf then error("Executor không hỗ trợ loadstring") end
+		local fn, se = lf(code)
+		if not fn then error(se or "Syntax error") end
+		hiddenGuis = {}
+		for _, c in ipairs(UserFolder:GetDescendants()) do
+			if c:IsA("ScreenGui") then
+				table.insert(hiddenGuis, {gui=c, en=c.Enabled})
+				c.Enabled = false
+			end
+		end
+		local s, r = pcall(fn)
+		if not s then
+			for _, i in ipairs(hiddenGuis) do if i.gui and i.gui.Parent then i.gui.Enabled = i.en end end
+			hiddenGuis = {}
+			error(tostring(r))
+		end
+		prevGui = r
+		isPrev = true
+		G.explorer.Visible = false
+		G.props.Visible = false
+		if selFrame then selFrame.Visible = false end
+		prevBtn.Text = "Edit Mode"
+		prevBtn.BackgroundColor3 = Color3.fromRGB(0,150,70)
+	end)
+	if not ok then showErr(tostring(err)) end
+end
+
+local function exitPrev()
+	isPrev = false
+	clearPrevDrag()
+	if prevGui and prevGui.Parent then prevGui:Destroy() end
+	prevGui = nil
+	for _, i in ipairs(hiddenGuis) do if i.gui and i.gui.Parent then i.gui.Enabled = i.en end end
+	hiddenGuis = {}
+	G.explorer.Visible = true
+	G.props.Visible = true
+	prevBtn.Text = "Preview"
+	prevBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+end
+
+prevBtn.MouseButton1Click:Connect(function()
+	if isPrev then exitPrev() else enterPrev() end
+end)
+
+local fmodal = Instance.new("Frame", G.gui)
+fmodal.Size = UDim2.new(0,320,0,320) fmodal.Position = UDim2.new(0.5,-160,0.3,0)
+fmodal.BackgroundColor3 = Color3.fromRGB(35,35,35) fmodal.BorderSizePixel = 0
+fmodal.Visible = false fmodal.ZIndex = 5000
+Instance.new("UIStroke", fmodal).Color = Color3.fromRGB(0,120,215)
+Instance.new("UICorner", fmodal).CornerRadius = UDim.new(0,6)
+
+local ftop = Instance.new("Frame", fmodal)
+ftop.Size = UDim2.new(1,0,0,26) ftop.BackgroundColor3 = Color3.fromRGB(25,25,25)
+local ftitle = Instance.new("TextLabel", ftop)
+ftitle.Size = UDim2.new(1,-30,1,0) ftitle.Position = UDim2.new(0,10,0,0)
+ftitle.BackgroundTransparency = 1 ftitle.Text = "Storage Manager"
+ftitle.TextColor3 = Color3.fromRGB(255,255,255) ftitle.TextXAlignment = Enum.TextXAlignment.Left
+ftitle.Font = Enum.Font.SourceSansBold ftitle.TextSize = 13
+local fclose = Instance.new("TextButton", ftop)
+fclose.Size = UDim2.new(0,26,0,26) fclose.Position = UDim2.new(1,-26,0,0)
+fclose.BackgroundTransparency = 1 fclose.Text = "X" fclose.TextColor3 = Color3.fromRGB(200,200,200)
+fclose.Font = Enum.Font.SourceSansBold
+fclose.MouseButton1Click:Connect(function() fmodal.Visible = false end)
+
+local fnameBox = Instance.new("TextBox", fmodal)
+fnameBox.Size = UDim2.new(1,-90,0,26) fnameBox.Position = UDim2.new(0,10,0,34)
+fnameBox.BackgroundColor3 = Color3.fromRGB(20,20,20) fnameBox.TextColor3 = Color3.fromRGB(255,255,255)
+fnameBox.PlaceholderText = "Nhập tên GUI..." fnameBox.Font = Enum.Font.SourceSans fnameBox.TextSize = 13 fnameBox.Text = ""
+
+local fsave = Instance.new("TextButton", fmodal)
+fsave.Size = UDim2.new(0,65,0,26) fsave.Position = UDim2.new(1,-75,0,34)
+fsave.BackgroundColor3 = Color3.fromRGB(0,150,70) fsave.TextColor3 = Color3.fromRGB(255,255,255)
+fsave.Text = "Save" fsave.Font = Enum.Font.SourceSansBold fsave.TextSize = 12
+Instance.new("UICorner", fsave).CornerRadius = UDim.new(0,4)
+
+local fscroll = Instance.new("ScrollingFrame", fmodal)
+fscroll.Size = UDim2.new(1,-20,1,-74) fscroll.Position = UDim2.new(0,10,0,68)
+fscroll.BackgroundColor3 = Color3.fromRGB(25,25,25) fscroll.BorderSizePixel = 0
+fscroll.ScrollBarThickness = 4 fscroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local fl = Instance.new("UIListLayout", fscroll)
+fl.SortOrder = Enum.SortOrder.LayoutOrder fl.Padding = UDim.new(0,4)
+
+local function getSchema(inst)
+	local l = {}
+	for _, p in ipairs(PS.Common) do table.insert(l, p) end
+	if inst:IsA("ScreenGui") then for _, p in ipairs(PS.ScreenGui) do table.insert(l, p) end end
+	if inst:IsA("GuiObject") then for _, p in ipairs(PS.GuiObject) do table.insert(l, p) end end
+	if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then for _, p in ipairs(PS.Text) do table.insert(l, p) end end
+	if inst:IsA("ImageLabel") or inst:IsA("ImageButton") then for _, p in ipairs(PS.Image) do table.insert(l, p) end end
+	if inst:IsA("UICorner") then for _, p in ipairs(PS.UICorner) do table.insert(l, p) end end
+	if inst:IsA("UIStroke") then for _, p in ipairs(PS.UIStroke) do table.insert(l, p) end end
+	if inst:IsA("UIGradient") then for _, p in ipairs(PS.UIGradient) do table.insert(l, p) end end
+	if inst:IsA("UIPadding") then for _, p in ipairs(PS.UIPadding) do table.insert(l, p) end end
+	if inst:IsA("UIAspectRatioConstraint") then for _, p in ipairs(PS.UIAspect) do table.insert(l, p) end end
+	if inst:IsA("UIDragDetector") then for _, p in ipairs(PS.UIDrag) do table.insert(l, p) end end
+	if inst:IsA("LocalScript") then for _, p in ipairs(PS.LocalScript) do table.insert(l, p) end end
+	if inst:IsA("ModuleScript") then for _, p in ipairs(PS.ModuleScript) do table.insert(l, p) end end
+	if inst:IsA("Script") then for _, p in ipairs(PS.Script) do table.insert(l, p) end end
+	if inst:IsA("ScrollingFrame") then for _, p in ipairs(PS.Scrolling) do table.insert(l, p) end end
+	if inst:IsA("TextBox") then for _, p in ipairs(PS.TextBox) do table.insert(l, p) end end
+	if inst:IsA("ViewportFrame") then for _, p in ipairs(PS.Viewport) do table.insert(l, p) end end
+	if inst:IsA("VideoFrame") then for _, p in ipairs(PS.Video) do table.insert(l, p) end end
+	return l
+end
+
+local function serialize(inst)
+	local d = {ClassName=inst.ClassName, Name=inst.Name, Properties={}, Children={}}
+	for _, pr in ipairs(getSchema(inst)) do
+		if pr.Name ~= "DragGui" then
+			local ok, v = pcall(function() return inst[pr.Name] end)
+			if ok then
+				if pr.Type == "Color3" then d.Properties[pr.Name] = {Type="Color3", R=v.R, G=v.G, B=v.B}
+				elseif pr.Type == "UDim2" then d.Properties[pr.Name] = {Type="UDim2", XS=v.X.Scale, XO=v.X.Offset, YS=v.Y.Scale, YO=v.Y.Offset}
+				elseif pr.Type == "UDim" then d.Properties[pr.Name] = {Type="UDim", S=v.Scale, O=v.Offset}
+				elseif pr.Type == "Vector2" then d.Properties[pr.Name] = {Type="Vector2", X=v.X, Y=v.Y}
+				else d.Properties[pr.Name] = v end
+			end
+		end
+	end
+	if inst:IsA("UIGradient") then
+		local sc = getGradColor(inst, false)
+		local ec = getGradColor(inst, true)
+		d.Properties.GradientColorStart = {Type="Color3", R=sc.R, G=sc.G, B=sc.B}
+		d.Properties.GradientColorEnd = {Type="Color3", R=ec.R, G=ec.G, B=ec.B}
+	end
+	if inst:GetAttribute("RainbowEnabled") then d.RainbowEnabled = true end
+	if inst:GetAttribute("DragGuiEnabled") then d.DragGuiEnabled = true end
+	for _, c in ipairs(inst:GetChildren()) do
+		if c.Name ~= "SelectionBoxOverlay" and c.Name ~= "DragScript" and c.Name ~= "RainbowScript" then
+			table.insert(d.Children, serialize(c))
+		end
+	end
+	return d
+end
+
+local function deserialize(d, parent)
+	local inst = Instance.new(d.ClassName)
+	inst.Name = d.Name
+	for pn, v in pairs(d.Properties) do
+		if pn ~= "GradientColorStart" and pn ~= "GradientColorEnd" then
+			pcall(function()
+				if type(v) == "table" and v.Type then
+					if v.Type == "Color3" then inst[pn] = Color3.new(v.R, v.G, v.B)
+					elseif v.Type == "UDim2" then inst[pn] = UDim2.new(v.XS, v.XO, v.YS, v.YO)
+					elseif v.Type == "UDim" then inst[pn] = UDim.new(v.S, v.O)
+					elseif v.Type == "Vector2" then inst[pn] = Vector2.new(v.X, v.Y) end
+				else inst[pn] = v end
+			end)
+		end
+	end
+	if inst:IsA("UIGradient") then
+		local sd = d.Properties.GradientColorStart
+		local ed = d.Properties.GradientColorEnd
+		if sd then setGradColor(inst, false, Color3.new(sd.R, sd.G, sd.B)) end
+		if ed then setGradColor(inst, true, Color3.new(ed.R, ed.G, ed.B)) end
+	end
+	inst.Parent = parent
+	if d.RainbowEnabled and inst:IsA("GuiObject") then connectRB(inst) end
+	if d.DragGuiEnabled and inst:IsA("GuiObject") then
+		inst:SetAttribute("DragGuiEnabled", true)
+	end
+	for _, cd in ipairs(d.Children or {}) do deserialize(cd, inst) end
+	return inst
+end
+
+local function refreshFL()
+	for _, c in ipairs(fscroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+	if not canSave then
+		local e = Instance.new("TextLabel", fscroll)
+		e.Size = UDim2.new(1,0,0,40) e.BackgroundTransparency = 1
+		e.TextColor3 = Color3.fromRGB(220,80,80) e.Text = "Executor không hỗ trợ lưu file!" e.TextWrapped = true
+		return
+	end
+	local files = {}
+	pcall(function()
+		for _, fp in ipairs(listfiles(SAVE_FOLDER)) do if fp:sub(-5) == ".json" then table.insert(files, fp) end end
+	end)
+	for _, fp in ipairs(files) do
+		local fn = fp:match("[^/\\]+$"):gsub("%.json$", "")
+		local row = Instance.new("Frame", fscroll)
+		row.Size = UDim2.new(1,0,0,26) row.BackgroundColor3 = Color3.fromRGB(40,40,40) row.BorderSizePixel = 0
+		local lbl = Instance.new("TextLabel", row)
+		lbl.Size = UDim2.new(1,-110,1,0) lbl.Position = UDim2.new(0,6,0,0)
+		lbl.BackgroundTransparency = 1 lbl.TextColor3 = Color3.fromRGB(240,240,240)
+		lbl.Text = fn lbl.TextXAlignment = Enum.TextXAlignment.Left
+		lbl.Font = Enum.Font.SourceSans lbl.TextSize = 12
+		local lb = Instance.new("TextButton", row)
+		lb.Size = UDim2.new(0,45,0,20) lb.Position = UDim2.new(1,-100,0,3)
+		lb.BackgroundColor3 = Color3.fromRGB(0,120,215) lb.TextColor3 = Color3.fromRGB(255,255,255)
+		lb.Text = "Load" lb.Font = Enum.Font.SourceSansBold lb.TextSize = 11
+		Instance.new("UICorner", lb).CornerRadius = UDim.new(0,3)
+		local db = Instance.new("TextButton", row)
+		db.Size = UDim2.new(0,45,0,20) db.Position = UDim2.new(1,-50,0,3)
+		db.BackgroundColor3 = Color3.fromRGB(180,40,40) db.TextColor3 = Color3.fromRGB(255,255,255)
+		db.Text = "Delete" db.Font = Enum.Font.SourceSansBold db.TextSize = 11
+		Instance.new("UICorner", db).CornerRadius = UDim.new(0,3)
+		lb.MouseButton1Click:Connect(function()
+			pcall(function()
+				local dec = HS:JSONDecode(readfile(fp))
+				disconnectAllRB()
+				UserFolder:ClearAllChildren()
+				for _, d in ipairs(dec) do deserialize(d, UserFolder) end
+				renderTree()
+				fmodal.Visible = false
+			end)
+		end)
+		db.MouseButton1Click:Connect(function()
+			pcall(function() if delfile then delfile(fp) end refreshFL() end)
+		end)
+	end
+end
+
+fsave.MouseButton1Click:Connect(function()
+	local n = fnameBox.Text:gsub("[%c%s]", "")
+	if n == "" or not canSave then return end
+	local td = {}
+	for _, c in ipairs(UserFolder:GetChildren()) do
+		if c.Name ~= "SelectionBoxOverlay" then table.insert(td, serialize(c)) end
+	end
+	pcall(function()
+		writefile(SAVE_FOLDER.."/"..n..".json", HS:JSONEncode(td))
+		fnameBox.Text = ""
+		refreshFL()
+	end)
+end)
+
+saveBtn.MouseButton1Click:Connect(function()
+	refreshFL()
+	fmodal.Visible = true
+end)
+
+local actBar = Instance.new("Frame", G.explorer)
+actBar.Size = UDim2.new(1,-8,0,26) actBar.Position = UDim2.new(0,4,1,-29)
+actBar.BackgroundColor3 = Color3.fromRGB(35,35,35) actBar.BorderSizePixel = 0
+Instance.new("UICorner", actBar).CornerRadius = UDim.new(0,4)
+local ag = Instance.new("UIGridLayout", actBar)
+ag.CellSize = UDim2.new(0.14,0,1,0) ag.CellPadding = UDim2.new(0.01,0,0,0)
+ag.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ag.VerticalAlignment = Enum.VerticalAlignment.Center
+
+local function mkBtn(t, bg, tc)
+	local b = Instance.new("TextButton", actBar)
+	b.BackgroundColor3 = bg b.TextColor3 = tc or Color3.fromRGB(255,255,255)
+	b.Text = t b.Font = Enum.Font.SourceSansBold b.TextSize = 11
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,3)
+	return b
+end
+
+local bUndo = mkBtn("<", Color3.fromRGB(200,150,0))
+local bRedo = mkBtn(">", Color3.fromRGB(200,150,0))
+local bCopy = mkBtn("Copy", Color3.fromRGB(60,60,60))
+local bCut = mkBtn("Cut", Color3.fromRGB(60,60,60))
+local bPaste = mkBtn("Paste", Color3.fromRGB(0,100,200))
+local bDup = mkBtn("Dup", Color3.fromRGB(0,120,215))
+local bDel = mkBtn("Del", Color3.fromRGB(180,40,40))
+
+local function clearSel()
+	if selFrame then selFrame:Destroy() selFrame = nil end
+	if selNode then selNode.BackgroundColor3 = Color3.fromRGB(55,55,55) selNode.BackgroundTransparency = 0.5 end
+	selObj = nil selNode = nil
+end
+
+local function saveState()
+	local s = {}
+	for _, c in ipairs(UserFolder:GetChildren()) do
+		if c.Name ~= "SelectionBoxOverlay" then table.insert(s, serialize(c)) end
+	end
+	table.insert(undoH, s)
+	if #undoH > maxH then table.remove(undoH, 1) end
+	redoH = {}
+end
+
+bUndo.MouseButton1Click:Connect(function()
+	if #undoH <= 1 then return end
+	table.insert(redoH, undoH[#undoH])
+	table.remove(undoH, #undoH)
+	disconnectAllRB()
+	UserFolder:ClearAllChildren()
+	for _, d in ipairs(undoH[#undoH]) do deserialize(d, UserFolder) end
+	renderTree() clearSel()
+end)
+
+bRedo.MouseButton1Click:Connect(function()
+	if #redoH == 0 then return end
+	local s = redoH[#redoH]
+	table.remove(redoH, #redoH)
+	table.insert(undoH, s)
+	disconnectAllRB()
+	UserFolder:ClearAllChildren()
+	for _, d in ipairs(s) do deserialize(d, UserFolder) end
+	renderTree() clearSel()
+end)
+
+bCopy.MouseButton1Click:Connect(function()
+	if selObj and selObj ~= UserFolder then
+		saveState() clipObj = selObj isCut = false
+		bCopy.Text = "OK" task.delay(1, function() bCopy.Text = "Copy" end)
+	end
+end)
+
+bCut.MouseButton1Click:Connect(function()
+	if selObj and selObj ~= UserFolder then
+		saveState() clipObj = selObj isCut = true
+		bCut.Text = "OK" task.delay(1, function() bCut.Text = "Cut" end)
+	end
+end)
+
+bPaste.MouseButton1Click:Connect(function()
+	if clipObj then
+		saveState()
+		local p = selObj and selObj.Parent or UserFolder
+		if isCut then
+			if clipObj.Parent == p then return end
+			clipObj.Parent = p clipObj = nil isCut = false
+		else
+			local cl = clipObj:Clone()
+			if cl:IsA("GuiObject") and selObj and selObj:IsA("GuiObject") then
+				cl.Position = selObj.Position + UDim2.new(0,10,0,10)
+			end
+			cl.Parent = p
+		end
+		renderTree() bPaste.Text = "OK"
+		task.delay(1, function() bPaste.Text = "Paste" end)
+	end
+end)
+
+bDup.MouseButton1Click:Connect(function()
+	if selObj and selObj ~= UserFolder then
+		saveState()
+		local cl = selObj:Clone()
+		cl.Parent = selObj.Parent
+		if cl:IsA("GuiObject") then
+			cl.Position = UDim2.new(selObj.Position.X.Scale, selObj.Position.X.Offset+10, selObj.Position.Y.Scale, selObj.Position.Y.Offset+10)
+		end
+		renderTree()
+	end
+end)
+
+bDel.MouseButton1Click:Connect(function()
+	if selObj and selObj ~= UserFolder then
+		saveState()
+		selObj:Destroy() clearSel() renderTree()
+	end
+end)
+
+G.props = Instance.new("Frame", G.gui)
+G.props.Active = true G.props.BorderSizePixel = 0
+G.props.BackgroundColor3 = Color3.fromRGB(45,45,45)
+G.props.Size = UDim2.new(0,240,0,380)
+G.props.Position = UDim2.new(0,250,0.2,0)
+Instance.new("UIStroke", G.props).Color = Color3.fromRGB(80,80,80)
+
+G.ptop = Instance.new("TextLabel", G.props)
+G.ptop.BorderSizePixel = 0 G.ptop.TextXAlignment = Enum.TextXAlignment.Left
+G.ptop.BackgroundColor3 = Color3.fromRGB(35,35,35) G.ptop.TextColor3 = Color3.fromRGB(255,255,255)
+G.ptop.Size = UDim2.new(1,0,0,24) G.ptop.Text = " Properties - None"
+G.ptop.Font = Enum.Font.SourceSansBold G.ptop.TextSize = 13
+Instance.new("UIDragDetector", G.props)
+
+G.pscroll = Instance.new("ScrollingFrame", G.props)
+G.pscroll.BorderSizePixel = 0 G.pscroll.BackgroundColor3 = Color3.fromRGB(50,50,50)
+G.pscroll.Size = UDim2.new(1,0,1,-24) G.pscroll.Position = UDim2.new(0,0,0,24)
+G.pscroll.ScrollBarThickness = 4 G.pscroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local pl = Instance.new("UIListLayout", G.pscroll)
+pl.SortOrder = Enum.SortOrder.LayoutOrder pl.Padding = UDim.new(0,1)
+
+local codeWin = Instance.new("Frame", ModalGui)
+codeWin.Size = UDim2.new(0,550,0,450) codeWin.Position = UDim2.new(0.5,-275,0.15,0)
+codeWin.BackgroundColor3 = Color3.fromRGB(30,30,30) codeWin.BorderSizePixel = 0
+codeWin.Visible = false codeWin.ZIndex = 9999998 codeWin.Active = true
+Instance.new("UIStroke", codeWin).Color = Color3.fromRGB(0,120,215)
+Instance.new("UIDragDetector", codeWin)
+
+local ctop = Instance.new("Frame", codeWin)
+ctop.Size = UDim2.new(1,0,0,26) ctop.BackgroundColor3 = Color3.fromRGB(20,20,20)
+local ct = Instance.new("TextLabel", ctop)
+ct.Size = UDim2.new(1,-60,1,0) ct.Position = UDim2.new(0,8,0,0)
+ct.BackgroundTransparency = 1 ct.Text = "Generated Lua"
+ct.TextColor3 = Color3.fromRGB(255,255,255) ct.TextXAlignment = Enum.TextXAlignment.Left
+ct.Font = Enum.Font.SourceSansBold ct.TextSize = 14
+local cclose = Instance.new("TextButton", ctop)
+cclose.Size = UDim2.new(0,26,0,26) cclose.Position = UDim2.new(1,-26,0,0)
+cclose.BackgroundTransparency = 1 cclose.Text = "X" cclose.TextColor3 = Color3.fromRGB(200,200,200)
+cclose.Font = Enum.Font.SourceSansBold cclose.TextSize = 14
+cclose.MouseButton1Click:Connect(function() codeWin.Visible = false end)
+
+local ccopy = Instance.new("TextButton", ctop)
+ccopy.Size = UDim2.new(0,60,0,18) ccopy.Position = UDim2.new(1,-90,0,4)
+ccopy.BackgroundColor3 = Color3.fromRGB(0,120,215) ccopy.TextColor3 = Color3.fromRGB(255,255,255)
+ccopy.Text = "Copy" ccopy.Font = Enum.Font.SourceSansBold ccopy.TextSize = 12
+Instance.new("UICorner", ccopy).CornerRadius = UDim.new(0,3)
+
+local cscroll = Instance.new("ScrollingFrame", codeWin)
+cscroll.Size = UDim2.new(1,-10,1,-36) cscroll.Position = UDim2.new(0,5,0,31)
+cscroll.BackgroundColor3 = Color3.fromRGB(20,20,20) cscroll.BorderSizePixel = 0
+cscroll.ScrollBarThickness = 6
+
+local codeBox = Instance.new("TextBox", cscroll)
+codeBox.Size = UDim2.new(1,0,1,0) codeBox.BackgroundTransparency = 1
+codeBox.TextColor3 = Color3.fromRGB(150,230,150) codeBox.TextXAlignment = Enum.TextXAlignment.Left
+codeBox.TextYAlignment = Enum.TextYAlignment.Top codeBox.Font = Enum.Font.Code
+codeBox.TextSize = 12 codeBox.ClearTextOnFocus = false codeBox.MultiLine = true
+
+ccopy.MouseButton1Click:Connect(function()
+	if setclipboard then
+		setclipboard(codeBox.Text)
+		ccopy.Text = "Copied!"
+		task.delay(1.5, function() ccopy.Text = "Copy" end)
+	else codeBox:CaptureFocus() end
+end)
+
+local seModal = Instance.new("Frame", G.gui)
+seModal.Size = UDim2.new(0,380,0,280) seModal.Position = UDim2.new(0.5,-190,0.25,0)
+seModal.BackgroundColor3 = Color3.fromRGB(25,25,25) seModal.BorderSizePixel = 0
+seModal.Visible = false seModal.ZIndex = 6000
+Instance.new("UIStroke", seModal).Color = Color3.fromRGB(0,150,255)
+Instance.new("UICorner", seModal).CornerRadius = UDim.new(0,6)
+Instance.new("UIDragDetector", seModal)
+
+local setop = Instance.new("Frame", seModal)
+setop.Size = UDim2.new(1,0,0,26) setop.BackgroundColor3 = Color3.fromRGB(18,18,18)
+local set = Instance.new("TextLabel", setop)
+set.Size = UDim2.new(1,-70,1,0) set.Position = UDim2.new(0,10,0,0)
+set.BackgroundTransparency = 1 set.Text = "Edit Source"
+set.TextColor3 = Color3.fromRGB(255,255,255) set.TextXAlignment = Enum.TextXAlignment.Left
+set.Font = Enum.Font.SourceSansBold set.TextSize = 13
+local nlBtn = Instance.new("TextButton", setop)
+nlBtn.Size = UDim2.new(0,30,0,20) nlBtn.Position = UDim2.new(1,-62,0,3)
+nlBtn.BackgroundColor3 = Color3.fromRGB(50,50,50) nlBtn.TextColor3 = Color3.fromRGB(255,255,255)
+nlBtn.Text = "\\n" nlBtn.Font = Enum.Font.Code nlBtn.TextSize = 13
+Instance.new("UICorner", nlBtn).CornerRadius = UDim.new(0,3)
+local seClose = Instance.new("TextButton", setop)
+seClose.Size = UDim2.new(0,26,0,26) seClose.Position = UDim2.new(1,-26,0,0)
+seClose.BackgroundTransparency = 1 seClose.Text = "X"
+seClose.TextColor3 = Color3.fromRGB(220,220,220) seClose.Font = Enum.Font.SourceSansBold seClose.TextSize = 15
+local sescroll = Instance.new("ScrollingFrame", seModal)
+sescroll.Size = UDim2.new(1,-12,1,-38) sescroll.Position = UDim2.new(0,6,0,32)
+sescroll.BackgroundColor3 = Color3.fromRGB(15,15,15) sescroll.BorderSizePixel = 0
+sescroll.ScrollBarThickness = 6
+local seBox = Instance.new("TextBox", sescroll)
+seBox.Size = UDim2.new(1,0,1,0) seBox.BackgroundTransparency = 1
+seBox.TextColor3 = Color3.fromRGB(220,220,220) seBox.TextXAlignment = Enum.TextXAlignment.Left
+seBox.TextYAlignment = Enum.TextYAlignment.Top seBox.Font = Enum.Font.Code
+seBox.TextSize = 12 seBox.ClearTextOnFocus = false seBox.MultiLine = true
+
+local curTarget = nil
+openSE = function(t)
+	curTarget = t
+	local src = "" pcall(function() src = t.Source end)
+	seBox.Text = src
+	seModal.Visible = true
+end
+
+nlBtn.MouseButton1Click:Connect(function() seBox.Text = seBox.Text.."\n" seBox:CaptureFocus() end)
+seClose.MouseButton1Click:Connect(function()
+	if curTarget then
+		pcall(function() curTarget.Source = seBox.Text end)
+		if propInputs["Source"] then propInputs["Source"].Text = seBox.Text end
+	end
+	seModal.Visible = false
+end)
+
+genLua = function()
+	local L = {}
+	L[#L+1] = "--[=["
+	L[#L+1] = " ██╗  ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ████████╗████████╗         ████████╗      ██████╗"
+	L[#L+1] = "██║  ██║██╔═══██╗██╔══██╗████╗  ██║██╔════╝ ╚══██╔══╝╚══██╔══╝        ██╔═══██╗     ██╔═══██╗"
+	L[#L+1] = "███████║██║   ██║███████║██╔██╗ ██║██║  ███╗   ██║      ██║              ██║   ██║            ██║"
+	L[#L+1] = "██╔══██║██║   ██║██╔══██║██║╚██╗██║██║   ██║   ██║      ██║              ██║   ██║      ██████╔╝"
+	L[#L+1] = "██║  ██║╚██████╔╝██║  ██║██║ ╚████║╚██████╔╝   ██║      ██║      ██      ██║   ██║     ╚════██╗"
+	L[#L+1] = "╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝    ╚═╝      ╚═╝      ╚═╝     ╚███████╝     ██████╔╝"
+	L[#L+1] = "using gui creator by hoangtt03                                                               ]=]"
+	L[#L+1] = "local RunService = game:GetService(\"RunService\")"
+	L[#L+1] = "local UserInputService = game:GetService(\"UserInputService\")"
+	L[#L+1] = "local HTT03 = {}"
+	L[#L+1] = "local _rbFuncs = {}"
+	local cnt = 0
+	local function proc(inst, parentVar)
+		cnt = cnt + 1
+		local v = "HTT03[\""..inst.ClassName.."_"..cnt.."\"]"
+		L[#L+1] = v.." = Instance.new(\""..inst.ClassName.."\", "..parentVar..")"
+		L[#L+1] = v..".Name = \""..esc(inst.Name).."\""
+		for _, pr in ipairs(getSchema(inst)) do
+			if pr.Name ~= "Name" and pr.Name ~= "DragGui" then
+				local ok, val = pcall(function() return inst[pr.Name] end)
+				if ok and val ~= nil then
+					if pr.Type == "string" or pr.Type == "CodeText" then
+						L[#L+1] = v.."."..pr.Name.." = \""..esc(val).."\""
+					elseif pr.Type == "boolean" then
+						L[#L+1] = v.."."..pr.Name.." = "..tostring(val)
+					elseif pr.Type == "number" then
+						L[#L+1] = v.."."..pr.Name.." = "..tostring(val)
+					elseif pr.Type == "Color3" then
+						L[#L+1] = string.format("%s.%s = Color3.fromRGB(%d,%d,%d)", v, pr.Name, math.floor(val.R*255), math.floor(val.G*255), math.floor(val.B*255))
+					elseif pr.Type == "UDim2" then
+						L[#L+1] = string.format("%s.%s = UDim2.new(%f,%d,%f,%d)", v, pr.Name, val.X.Scale, val.X.Offset, val.Y.Scale, val.Y.Offset)
+					elseif pr.Type == "UDim" then
+						L[#L+1] = string.format("%s.%s = UDim.new(%f,%d)", v, pr.Name, val.Scale, val.Offset)
+					elseif pr.Type == "Vector2" then
+						L[#L+1] = string.format("%s.%s = Vector2.new(%f,%f)", v, pr.Name, val.X, val.Y)
+					end
+				end
+			end
+		end
+		if inst:IsA("UIGradient") then
+			local sc = getGradColor(inst, false)
+			local ec = getGradColor(inst, true)
+			L[#L+1] = string.format("%s.Color = ColorSequence.new(Color3.fromRGB(%d,%d,%d), Color3.fromRGB(%d,%d,%d))", v, math.floor(sc.R*255), math.floor(sc.G*255), math.floor(sc.B*255), math.floor(ec.R*255), math.floor(ec.G*255), math.floor(ec.B*255))
+		end
+		if inst:GetAttribute("RainbowEnabled") and inst:IsA("GuiObject") then
+			L[#L+1] = "do"
+			L[#L+1] = "    local _f = "..v
+			L[#L+1] = "    local _g = _f:FindFirstChildOfClass(\"UIGradient\")"
+			L[#L+1] = "    if not _g then _g = Instance.new(\"UIGradient\", _f); _g.Rotation = 45 end"
+			L[#L+1] = "    local _o = 0"
+			L[#L+1] = "    table.insert(_rbFuncs, function(dt)"
+			L[#L+1] = "        if not _f.Parent or not _g.Parent then return end"
+			L[#L+1] = "        _o = (_o + dt * 0.3) % 1"
+			L[#L+1] = "        local k = {}"
+			L[#L+1] = "        for i = 0, 7 do local t = i / 7; table.insert(k, ColorSequenceKeypoint.new(t, Color3.fromHSV((t + _o) % 1, 1, 1))) end"
+			L[#L+1] = "        _g.Color = ColorSequence.new(k)"
+			L[#L+1] = "    end)"
+			L[#L+1] = "end"
+		end
+		if inst:GetAttribute("DragGuiEnabled") and inst:IsA("GuiObject") then
+			L[#L+1] = "do"
+			L[#L+1] = "    local _f = "..v
+			L[#L+1] = "    local _d, _ds, _sp = false, nil, nil"
+			L[#L+1] = "    _f.InputBegan:Connect(function(input)"
+			L[#L+1] = "        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then _d = true; _ds = input.Position; _sp = _f.Position end"
+			L[#L+1] = "    end)"
+			L[#L+1] = "    UserInputService.InputChanged:Connect(function(input)"
+			L[#L+1] = "        if _d and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then"
+			L[#L+1] = "            if not _f.Parent then _d = false; return end"
+			L[#L+1] = "            local delta = input.Position - _ds"
+			L[#L+1] = "            _f.Position = UDim2.new(_sp.X.Scale, _sp.X.Offset + delta.X, _sp.Y.Scale, _sp.Y.Offset + delta.Y)"
+			L[#L+1] = "        end"
+			L[#L+1] = "    end)"
+			L[#L+1] = "    UserInputService.InputEnded:Connect(function(input)"
+			L[#L+1] = "        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then _d = false end"
+			L[#L+1] = "    end)"
+			L[#L+1] = "end"
+		end
+		for _, c in ipairs(inst:GetChildren()) do
+			if c.Name ~= "SelectionBoxOverlay" and c.Name ~= "DragScript" and c.Name ~= "RainbowScript" then proc(c, v) end
+		end
+	end
+	local roots = {}
+	for _, c in ipairs(UserFolder:GetChildren()) do
+		if c:IsA("ScreenGui") and c.Name ~= "SelectionBoxOverlay" then table.insert(roots, c) end
+	end
+	if #roots == 0 then
+		local d = Instance.new("ScreenGui") d.Name = "ScreenGui_1" d.Parent = UserFolder
+		table.insert(roots, d)
+	end
+	for _, r in ipairs(roots) do proc(r, "game:GetService(\"Players\").LocalPlayer:WaitForChild(\"PlayerGui\")") end
+	L[#L+1] = "if #_rbFuncs > 0 then RunService.Heartbeat:Connect(function(dt) for _, fn in ipairs(_rbFuncs) do pcall(fn, dt) end end) end"
+	L[#L+1] = "return HTT03[\"ScreenGui_1\"]"
+	return table.concat(L, "\n")
+end
+
+toLuaBtn.MouseButton1Click:Connect(function()
+	local ok, res = pcall(genLua)
+	if ok then codeBox.Text = res codeWin.Visible = true
+	else showErr(tostring(res)) end
+end)
+
+local picker, tgtObj, tgtProp, setColorFn, onApply
+local cH, cS, cV = 0, 0, 1
+local updHSV
+
+function CP.Init()
+	picker = Instance.new("Frame", ModalGui)
+	picker.Size = UDim2.new(0,260,0,320) picker.Position = UDim2.new(0.5,-130,0.5,-160)
+	picker.BackgroundColor3 = Color3.fromRGB(245,245,245) picker.BorderSizePixel = 1
+	picker.BorderColor3 = Color3.fromRGB(180,180,180) picker.Visible = false
+	picker.ZIndex = 999999 picker.Active = true
+
+	local pt = Instance.new("Frame", picker)
+	pt.Size = UDim2.new(1,0,0,24) pt.BackgroundColor3 = Color3.fromRGB(235,235,235) pt.BorderSizePixel = 0
+	local pti = Instance.new("TextLabel", pt)
+	pti.Size = UDim2.new(1,-30,1,0) pti.Position = UDim2.new(0,8,0,0)
+	pti.BackgroundTransparency = 1 pti.Text = "Select Color"
+	pti.TextColor3 = Color3.fromRGB(20,20,20) pti.TextXAlignment = Enum.TextXAlignment.Left
+	pti.Font = Enum.Font.SourceSansBold pti.TextSize = 14
+	local pcl = Instance.new("TextButton", pt)
+	pcl.Size = UDim2.new(0,24,0,24) pcl.Position = UDim2.new(1,-24,0,0)
+	pcl.BackgroundTransparency = 1 pcl.Text = "X" pcl.TextColor3 = Color3.fromRGB(50,50,50)
+	pcl.Font = Enum.Font.SourceSansBold pcl.TextSize = 14
+	pcl.MouseButton1Click:Connect(function() picker.Visible = false end)
+
+	local cb = Instance.new("Frame", picker)
+	cb.Size = UDim2.new(0,180,0,150) cb.Position = UDim2.new(0,10,0,30)
+	cb.BackgroundColor3 = Color3.fromRGB(255,255,255) cb.BorderSizePixel = 1
+	cb.BorderColor3 = Color3.fromRGB(200,200,200) cb.ClipsDescendants = true
+	local hg = Instance.new("UIGradient", cb)
+	hg.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+		ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255,255,0)),
+		ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,255,255)),
+		ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0,0,255)),
+		ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+	})
+	local so = Instance.new("Frame", cb)
+	so.Size = UDim2.new(1,0,1,0) so.BackgroundColor3 = Color3.fromRGB(255,255,255) so.BorderSizePixel = 0
+	local sg = Instance.new("UIGradient", so)
+	sg.Rotation = 90
+	sg.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,1), NumberSequenceKeypoint.new(1,0)})
+	local cur = Instance.new("Frame", cb)
+	cur.Size = UDim2.new(0,12,0,12) cur.AnchorPoint = Vector2.new(0.5,0.5)
+	cur.BackgroundTransparency = 1 cur.BorderSizePixel = 0 cur.ZIndex = 10
+	local cc = Instance.new("TextLabel", cur)
+	cc.Size = UDim2.new(1,0,1,0) cc.BackgroundTransparency = 1 cc.Text = "+"
+	cc.TextSize = 14 cc.TextColor3 = Color3.fromRGB(0,0,0) cc.Font = Enum.Font.SourceSansBold
+
+	local vs = Instance.new("Frame", picker)
+	vs.Size = UDim2.new(0,24,0,150) vs.Position = UDim2.new(0,200,0,30)
+	vs.BackgroundColor3 = Color3.fromRGB(255,255,255) vs.BorderSizePixel = 1
+	vs.BorderColor3 = Color3.fromRGB(200,200,200)
+	local vg = Instance.new("UIGradient", vs)
+	vg.Rotation = 90 vg.Color = ColorSequence.new(Color3.fromRGB(255,255,255), Color3.fromRGB(0,0,0))
+	local vc = Instance.new("Frame", vs)
+	vc.Size = UDim2.new(1,4,0,4) vc.Position = UDim2.new(0,-2,0,0)
+	vc.BackgroundColor3 = Color3.fromRGB(255,0,0) vc.BorderSizePixel = 0
+
+	local pb = Instance.new("Frame", picker)
+	pb.Size = UDim2.new(0,50,0,80) pb.Position = UDim2.new(0,10,0,190)
+	pb.BorderSizePixel = 1 pb.BorderColor3 = Color3.fromRGB(180,180,180)
+
+	local function mkIn(par, lbl, px, py, w)
+		local L = Instance.new("TextLabel", par)
+		L.Size = UDim2.new(0,30,0,20) L.Position = UDim2.new(0,px,0,py)
+		L.BackgroundTransparency = 1 L.Text = lbl
+		L.TextColor3 = Color3.fromRGB(50,50,50) L.Font = Enum.Font.SourceSans L.TextSize = 12
+		local t = Instance.new("TextBox", par)
+		t.Size = UDim2.new(0,w or 40,0,20) t.Position = UDim2.new(0,px+32,0,py)
+		t.BackgroundColor3 = Color3.fromRGB(255,255,255) t.BorderColor3 = Color3.fromRGB(200,200,200)
+		t.TextColor3 = Color3.fromRGB(30,30,30) t.Font = Enum.Font.SourceSans
+		t.TextSize = 12 t.ClearTextOnFocus = false
+		return t
+	end
+	local iH = mkIn(picker,"Hue:",70,190)
+	local iS = mkIn(picker,"Sat:",70,215)
+	local iV = mkIn(picker,"Val:",70,240)
+	local iR = mkIn(picker,"Red:",155,190)
+	local iG = mkIn(picker,"Green:",155,215)
+	local iB = mkIn(picker,"Blue:",155,240)
+	local iHex = mkIn(picker,"HTML:",70,268,125)
+	local okB = Instance.new("TextButton", picker)
+	okB.Size = UDim2.new(0,60,0,22) okB.Position = UDim2.new(0,120,0,292)
+	okB.BackgroundColor3 = Color3.fromRGB(0,120,215) okB.Text = "OK"
+	okB.TextColor3 = Color3.fromRGB(255,255,255) okB.Font = Enum.Font.SourceSansBold
+	local canB = Instance.new("TextButton", picker)
+	canB.Size = UDim2.new(0,60,0,22) canB.Position = UDim2.new(0,188,0,292)
+	canB.BackgroundColor3 = Color3.fromRGB(230,230,230) canB.Text = "Cancel"
+	canB.TextColor3 = Color3.fromRGB(20,20,20) canB.Font = Enum.Font.SourceSans
+
+	updHSV = function(h, s, v, skip)
+		cH, cS, cV = math.clamp(h,0,1), math.clamp(s,0,1), math.clamp(v,0,1)
+		local fc = Color3.fromHSV(cH, cS, cV)
+		pb.BackgroundColor3 = fc
+		cur.Position = UDim2.new(cH,0,1-cS,0)
+		vc.Position = UDim2.new(0,-2,1-cV,0)
+		vg.Color = ColorSequence.new(Color3.fromHSV(cH,cS,1), Color3.fromRGB(0,0,0))
+		if not skip then
+			iH.Text = tostring(math.floor(cH*255))
+			iS.Text = tostring(math.floor(cS*255))
+			iV.Text = tostring(math.floor(cV*255))
+			iR.Text = tostring(math.floor(fc.R*255))
+			iG.Text = tostring(math.floor(fc.G*255))
+			iB.Text = tostring(math.floor(fc.B*255))
+			iHex.Text = fc:ToHex()
+		end
+	end
+
+	local function cbyte(n) return math.clamp(math.floor(n or 0), 0, 255) end
+	iH.FocusLost:Connect(function() local n = tonumber(iH.Text) if n then updHSV(cbyte(n)/255, cS, cV) end end)
+	iS.FocusLost:Connect(function() local n = tonumber(iS.Text) if n then updHSV(cH, cbyte(n)/255, cV) end end)
+	iV.FocusLost:Connect(function() local n = tonumber(iV.Text) if n then updHSV(cH, cS, cbyte(n)/255) end end)
+	local function uRGB()
+		local r,g,b = tonumber(iR.Text), tonumber(iG.Text), tonumber(iB.Text)
+		if r and g and b then
+			local c = Color3.fromRGB(cbyte(r),cbyte(g),cbyte(b))
+			local h,s,v = c:ToHSV() updHSV(h,s,v)
+		end
+	end
+	iR.FocusLost:Connect(uRGB) iG.FocusLost:Connect(uRGB) iB.FocusLost:Connect(uRGB)
+	iHex.FocusLost:Connect(function()
+		local ok, c = pcall(function() return Color3.fromHex(iHex.Text) end)
+		if ok and c then local h,s,v = c:ToHSV() updHSV(h,s,v) end
+	end)
+
+	local dc, dv = false, false
+	cb.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			dc = true
+			local ap, as = cb.AbsolutePosition, cb.AbsoluteSize
+			updHSV(math.clamp((i.Position.X-ap.X)/as.X,0,1), 1-math.clamp((i.Position.Y-ap.Y)/as.Y,0,1), cV)
+		end
+	end)
+	vs.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			dv = true
+			local ap, as = vs.AbsolutePosition, vs.AbsoluteSize
+			updHSV(cH, cS, 1-math.clamp((i.Position.Y-ap.Y)/as.Y,0,1))
+		end
+	end)
+	UIS.InputChanged:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+			if dc then
+				local ap, as = cb.AbsolutePosition, cb.AbsoluteSize
+				updHSV(math.clamp((i.Position.X-ap.X)/as.X,0,1), 1-math.clamp((i.Position.Y-ap.Y)/as.Y,0,1), cV)
+			elseif dv then
+				local ap, as = vs.AbsolutePosition, vs.AbsoluteSize
+				updHSV(cH, cS, 1-math.clamp((i.Position.Y-ap.Y)/as.Y,0,1))
+			end
+		end
+	end)
+	UIS.InputEnded:Connect(function() dc = false dv = false end)
+
+	okB.MouseButton1Click:Connect(function()
+		if tgtObj then
+			local sc = Color3.fromHSV(cH, cS, cV)
+			if setColorFn then pcall(function() setColorFn(tgtObj, sc) end)
+			elseif tgtProp then pcall(function() tgtObj[tgtProp] = sc end) end
+			if tgtProp and propInputs[tgtProp] then
+				propInputs[tgtProp].Text = string.format("%d, %d, %d", math.floor(sc.R*255), math.floor(sc.G*255), math.floor(sc.B*255))
+			end
+			if onApply then pcall(onApply, sc) end
+		end
+		picker.Visible = false
+	end)
+	canB.MouseButton1Click:Connect(function() picker.Visible = false end)
+end
+
+function CP.Open(obj, pn, cg, cs, oa)
+	tgtObj = obj tgtProp = pn setColorFn = cs onApply = oa
+	local cc
+	if cg then
+		local ok, r = pcall(cg, obj)
+		cc = (ok and r) or Color3.fromRGB(255,255,255)
+	else cc = obj[pn] or Color3.fromRGB(255,255,255) end
+	local h, s, v = cc:ToHSV()
+	cH, cS, cV = h, s, v
+	updHSV(h, s, v) picker.Visible = true
+end
+CP.Init()
+
+local function parseEnum(str, et)
+	if str == "" or not et then return nil end
+	local ok, items = pcall(function() return et:GetEnumItems() end)
+	if not ok or not items then return nil end
+	for _, m in pairs(items) do
+		if string.lower(m.Name) == string.lower(str) then return m end
+	end
+	return nil
+end
+local function pU2(s)
+	local n = {}
+	for num in string.gmatch(s, "[%-%d%.]+") do table.insert(n, tonumber(num)) end
+	if #n >= 4 then return UDim2.new(n[1], n[2], n[3], n[4]) end
+	return nil
+end
+local function pV2(s)
+	local n = {}
+	for num in string.gmatch(s, "[%-%d%.]+") do table.insert(n, tonumber(num)) end
+	if #n >= 2 then return Vector2.new(n[1], n[2]) end
+	return nil
+end
+local function pU(s)
+	local n = {}
+	for num in string.gmatch(s, "[%-%d%.]+") do table.insert(n, tonumber(num)) end
+	if #n >= 2 then return UDim.new(n[1], n[2]) end
+	return nil
+end
+
+local function updFast(obj)
+	if not obj or not selObj then return end
+	if propInputs["Position"] then
+		propInputs["Position"].Text = string.format("{%.2f, %d}, {%.2f, %d}", obj.Position.X.Scale, obj.Position.X.Offset, obj.Position.Y.Scale, obj.Position.Y.Offset)
+	end
+	if propInputs["Size"] then
+		propInputs["Size"].Text = string.format("{%.2f, %d}, {%.2f, %d}", obj.Size.X.Scale, obj.Size.X.Offset, obj.Size.Y.Scale, obj.Size.Y.Offset)
+	end
+end
+
+local function setDragGui(obj, en)
+	if not obj or not obj:IsA("GuiObject") then return end
+	obj:SetAttribute("DragGuiEnabled", en or nil)
+end
+
+local function renderProps(obj)
+	propInputs = {}
+	for _, c in ipairs(G.pscroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+	if not obj then
+		G.ptop.Text = " Properties - None"
+		return
+	end
+	G.ptop.Text = " Properties - "..obj.ClassName..' "'..obj.Name..'"'
+
+	for _, pr in ipairs(getSchema(obj)) do
+		local pn, pt = pr.Name, pr.Type
+		local isG = (pt == "GradientColorStart" or pt == "GradientColorEnd")
+		local isDG = (pn == "DragGui")
+		local ok, val = pcall(function() return obj[pn] end)
+		if isG then ok = true end
+		if isDG then ok = true val = obj:GetAttribute("DragGuiEnabled") == true end
+		if ok then
+			local row = Instance.new("Frame", G.pscroll)
+			row.Size = UDim2.new(1,0,0,22) row.BackgroundColor3 = Color3.fromRGB(40,40,40) row.BorderSizePixel = 0
+			local nl = Instance.new("TextLabel", row)
+			nl.Size = UDim2.new(0.45,-5,1,0) nl.Position = UDim2.new(0,5,0,0)
+			nl.BackgroundTransparency = 1 nl.TextColor3 = Color3.fromRGB(200,200,200)
+			nl.Text = pn nl.TextXAlignment = Enum.TextXAlignment.Left
+			nl.Font = Enum.Font.SourceSans nl.TextSize = 12
+
+			if pt == "boolean" then
+				local tb = Instance.new("TextButton", row)
+				tb.Size = UDim2.new(0.55,-5,0.8,0) tb.Position = UDim2.new(0.45,0,0.1,0)
+				tb.BackgroundColor3 = val and Color3.fromRGB(0,150,70) or Color3.fromRGB(70,70,70)
+				tb.TextColor3 = Color3.fromRGB(255,255,255) tb.Text = tostring(val)
+				tb.Font = Enum.Font.SourceSansBold tb.TextSize = 12
+				tb.MouseButton1Click:Connect(function()
+					local nv = not val val = nv
+					if isDG then setDragGui(obj, nv) else obj[pn] = nv end
+					tb.Text = tostring(nv)
+					tb.BackgroundColor3 = nv and Color3.fromRGB(0,150,70) or Color3.fromRGB(70,70,70)
+				end)
+			elseif pt == "Color3" then
+				local cw = Instance.new("Frame", row)
+				cw.Size = UDim2.new(0.55,-5,0.8,0) cw.Position = UDim2.new(0.45,0,0.1,0) cw.BackgroundTransparency = 1
+				local cb = Instance.new("TextButton", cw)
+				cb.Size = UDim2.new(0,20,1,0) cb.BackgroundColor3 = val cb.Text = ""
+				local iv = Instance.new("TextBox", cw)
+				iv.Size = UDim2.new(1,-25,1,0) iv.Position = UDim2.new(0,25,0,0)
+				iv.BackgroundColor3 = Color3.fromRGB(30,30,30) iv.TextColor3 = Color3.fromRGB(230,230,230)
+				iv.Font = Enum.Font.SourceSans iv.TextSize = 11
+				iv.Text = string.format("%d, %d, %d", math.floor(val.R*255), math.floor(val.G*255), math.floor(val.B*255))
+				propInputs[pn] = iv
+				cb.MouseButton1Click:Connect(function() CP.Open(obj, pn) end)
+			elseif isG then
+				local isEnd = (pt == "GradientColorEnd")
+				local cw = Instance.new("Frame", row)
+				cw.Size = UDim2.new(0.55,-5,0.8,0) cw.Position = UDim2.new(0.45,0,0.1,0) cw.BackgroundTransparency = 1
+				local cc = getGradColor(obj, isEnd)
+				local cb = Instance.new("TextButton", cw)
+				cb.Size = UDim2.new(0,20,1,0) cb.BackgroundColor3 = cc cb.Text = ""
+				local iv = Instance.new("TextBox", cw)
+				iv.Size = UDim2.new(1,-25,1,0) iv.Position = UDim2.new(0,25,0,0)
+				iv.BackgroundColor3 = Color3.fromRGB(30,30,30) iv.TextColor3 = Color3.fromRGB(230,230,230)
+				iv.Font = Enum.Font.SourceSans iv.TextSize = 11
+				iv.Text = string.format("%d, %d, %d", math.floor(cc.R*255), math.floor(cc.G*255), math.floor(cc.B*255))
+				propInputs[pn] = iv
+				cb.MouseButton1Click:Connect(function()
+					CP.Open(obj, pn,
+						function(g) return getGradColor(g, isEnd) end,
+						function(g, nc) setGradColor(g, isEnd, nc) end,
+						function(nc)
+							cb.BackgroundColor3 = nc
+							iv.Text = string.format("%d, %d, %d", math.floor(nc.R*255), math.floor(nc.G*255), math.floor(nc.B*255))
+						end
+					)
+				end)
+			elseif pt == "CodeText" then
+				local b = Instance.new("TextButton", row)
+				b.Size = UDim2.new(0.55,-5,0.8,0) b.Position = UDim2.new(0.45,0,0.1,0)
+				b.BackgroundColor3 = Color3.fromRGB(0,120,215) b.TextColor3 = Color3.fromRGB(255,255,255)
+				b.Text = "Edit Code" b.Font = Enum.Font.SourceSansBold b.TextSize = 11
+				Instance.new("UICorner", b).CornerRadius = UDim.new(0,3)
+				b.MouseButton1Click:Connect(function() openSE(obj) end)
+			else
+				local iv = Instance.new("TextBox", row)
+				iv.Size = UDim2.new(0.55,-5,0.8,0) iv.Position = UDim2.new(0.45,0,0.1,0)
+				iv.BackgroundColor3 = Color3.fromRGB(30,30,30) iv.TextColor3 = Color3.fromRGB(230,230,230)
+				iv.Font = Enum.Font.SourceSans iv.TextSize = 11
+				iv.Text = tostring(val) iv.ClearTextOnFocus = false
+				propInputs[pn] = iv
+				iv.FocusLost:Connect(function()
+					local text = iv.Text
+					if pn == "Image" and text ~= "" and not string.find(text, "^rbxassetid://") and not string.find(text, "^http") then
+						obj[pn] = "rbxassetid://"..text iv.Text = obj[pn]
+					elseif pt == "string" then
+						local en = ENUM_MAP[pn]
+						if en then
+							local e = parseEnum(text, en)
+							if e then obj[pn] = e end
+						else obj[pn] = text end
+					elseif pt == "number" then
+						local n = tonumber(text) if n then obj[pn] = n end
+					elseif pt == "UDim2" then
+						local p = pU2(text) if p then obj[pn] = p end
+					elseif pt == "Vector2" then
+						local p = pV2(text) if p then obj[pn] = p end
+					elseif pt == "UDim" then
+						local p = pU(text) if p then obj[pn] = p end
+					end
+				end)
+			end
+		end
+	end
+end
+
+local function clearMenus() if activeMenu then activeMenu:Destroy() activeMenu = nil end end
+
+local function selectObj(t, nb)
+	clearSel()
+	if not t or t == UserFolder then return end
+	selObj = t
+	renderProps(t)
+	if nb then
+		selNode = nb
+		nb.BackgroundColor3 = Color3.fromRGB(0,120,215) nb.BackgroundTransparency = 0.2
+	end
+	if t:IsA("GuiObject") then
+		local box = Instance.new("Frame", t)
+		box.Name = "SelectionBoxOverlay"
+		box.Size = UDim2.new(1,0,1,0) box.BackgroundTransparency = 1 box.BorderSizePixel = 0 box.ZIndex = 9999
+		local st = Instance.new("UIStroke", box)
+		st.Color = Color3.fromRGB(0,162,255) st.Thickness = 2
+		local function mkH(name, ap, pos, dx, dy)
+			local hit = Instance.new("TextButton", box)
+			hit.Name = name.."_Hitbox" hit.AnchorPoint = ap hit.Position = pos
+			hit.Size = UDim2.new(0,20,0,20) hit.BackgroundTransparency = 1 hit.Text = "" hit.ZIndex = 10000
+			local vc = Instance.new("Frame", hit)
+			vc.AnchorPoint = Vector2.new(0.5,0.5) vc.Position = UDim2.new(0.5,0,0.5,0)
+			vc.Size = UDim2.new(0,8,0,8) vc.BackgroundColor3 = Color3.fromRGB(255,255,255)
+			local hs = Instance.new("UIStroke", vc) hs.Color = Color3.fromRGB(0,120,215) hs.Thickness = 1.5
+			Instance.new("UICorner", vc).CornerRadius = UDim.new(1,0)
+			local rs, stp, ss, sp = false, nil, nil, nil
+			hit.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					rs = true stp = i.Position ss = t.AbsoluteSize sp = t.Position
+					G.explorer.Visible = false G.props.Visible = false
+				end
+			end)
+			UIS.InputChanged:Connect(function(i)
+				if rs and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+					local d = i.Position - stp
+					local nw = math.max(10, ss.X + (d.X * dx)) local nh = math.max(10, ss.Y + (d.Y * dy))
+					local ox = sp.X.Offset + (dx == -1 and (ss.X - nw) or 0)
+					local oy = sp.Y.Offset + (dy == -1 and (ss.Y - nh) or 0)
+					t.Size = UDim2.new(sp.X.Scale, nw, sp.Y.Scale, nh)
+					if dx == -1 or dy == -1 then t.Position = UDim2.new(sp.X.Scale, ox, sp.Y.Scale, oy) end
+					updFast(t)
+				end
+			end)
+			local function stop(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					rs = false G.explorer.Visible = not isPrev G.props.Visible = not isPrev
+				end
+			end
+			hit.InputEnded:Connect(stop) UIS.InputEnded:Connect(stop)
+		end
+		mkH("TL", Vector2.new(0.5,0.5), UDim2.new(0,0,0,0), -1, -1)
+		mkH("TR", Vector2.new(0.5,0.5), UDim2.new(1,0,0,0), 1, -1)
+		mkH("BL", Vector2.new(0.5,0.5), UDim2.new(0,0,1,0), -1, 1)
+		mkH("BR", Vector2.new(0.5,0.5), UDim2.new(1,0,1,0), 1, 1)
+		mkH("T", Vector2.new(0.5,0.5), UDim2.new(0.5,0,0,0), 0, -1)
+		mkH("B", Vector2.new(0.5,0.5), UDim2.new(0.5,0,1,0), 0, 1)
+		mkH("L", Vector2.new(0.5,0.5), UDim2.new(0,0,0.5,0), -1, 0)
+		mkH("R", Vector2.new(0.5,0.5), UDim2.new(1,0,0.5,0), 1, 0)
+		selFrame = box
+	end
+end
+
+local function makeDrag(gui)
+	local d, ds, sp = false, nil, nil
+	gui.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			if selObj == gui then
+				d = true ds = i.Position sp = gui.Position
+				G.explorer.Visible = false G.props.Visible = false
+			end
+		end
+	end)
+	UIS.InputChanged:Connect(function(i)
+		if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			local dl = i.Position - ds
+			gui.Position = UDim2.new(sp.X.Scale, sp.X.Offset + dl.X, sp.Y.Scale, sp.Y.Offset + dl.Y)
+			updFast(gui)
+		end
+	end)
+	local function stop(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			d = false G.explorer.Visible = not isPrev G.props.Visible = not isPrev
+		end
+	end
+	gui.InputEnded:Connect(stop) UIS.InputEnded:Connect(stop)
+end
+
+local function showMenu(parent, pos)
+	clearMenus()
+	local mf = Instance.new("Frame", G.gui)
+	mf.Size = UDim2.new(0,160,0,200) mf.Position = pos
+	mf.BackgroundColor3 = Color3.fromRGB(35,35,35) mf.BorderSizePixel = 0 mf.ZIndex = 10
+	local ms = Instance.new("ScrollingFrame", mf)
+	ms.Size = UDim2.new(1,0,1,0) ms.BackgroundTransparency = 1 ms.BorderSizePixel = 0
+	ms.ScrollBarThickness = 4 ms.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	local ml = Instance.new("UIListLayout", ms) ml.SortOrder = Enum.SortOrder.LayoutOrder
+
+	if clipObj then
+		local pb = Instance.new("TextButton", ms)
+		pb.Size = UDim2.new(1,0,0,22) pb.BackgroundColor3 = Color3.fromRGB(0,120,215)
+		pb.TextColor3 = Color3.fromRGB(255,255,255) pb.Text = "  Paste" pb.TextXAlignment = Enum.TextXAlignment.Left
+		pb.Font = Enum.Font.SourceSansBold pb.TextSize = 13
+		pb.MouseButton1Click:Connect(function()
+			clearMenus()
+			if clipObj and clipObj.Parent then
+				if isCut then clipObj.Parent = parent clipObj = nil isCut = false
+				else local p = clipObj:Clone() p.Parent = parent end
+				renderTree()
+			end
+		end)
+	end
+
+	for _, cn in ipairs(CREATABLE) do
+		local b = Instance.new("TextButton", ms)
+		b.Size = UDim2.new(1,0,0,22) b.BackgroundColor3 = Color3.fromRGB(45,45,45)
+		b.TextColor3 = Color3.fromRGB(220,220,220) b.Text = "  "..cn b.TextXAlignment = Enum.TextXAlignment.Left
+		b.Font = Enum.Font.SourceSans b.TextSize = 13
+		b.MouseButton1Click:Connect(function()
+			clearMenus()
+			local ok, obj
+			if cn == "Rainbow" then
+				ok = true
+				obj = Instance.new("Frame")
+				obj.Name = "Rainbow"
+				obj.Size = UDim2.new(0,200,0,100) obj.Position = UDim2.new(0,20,0,20)
+				obj.BorderSizePixel = 0 obj.BackgroundColor3 = Color3.fromRGB(255,255,255)
+				connectRB(obj) makeDrag(obj)
+			else ok, obj = pcall(function() return Instance.new(cn) end) end
+			if ok and obj then
+				obj.Name = cn
+				if obj:IsA("ScreenGui") then
+					obj.IgnoreGuiInset = true obj.ResetOnSpawn = false obj.Parent = UserFolder
+				else
+					if obj:IsA("GuiObject") and not obj:IsA("UIGradient") and not obj:IsA("UIStroke") and not obj:IsA("UICorner") and not obj:IsA("UIPadding") and not obj:IsA("UIAspectRatioConstraint") and not obj:IsA("UIListLayout") and not obj:IsA("UIGridLayout") then
+						obj.Size = UDim2.new(0,120,0,60) obj.Position = UDim2.new(0,20,0,20) makeDrag(obj)
+					end
+					obj.Parent = parent
+				end
+				renderTree()
+			end
+		end)
+	end
+	activeMenu = mf
+end
+
+local expStates = {[UserFolder] = true}
+local function createNode(t, indent, isRoot)
+	indent = indent or 0
+	local it = Instance.new("Frame", scroll)
+	it.Size = UDim2.new(1,0,0,22) it.BackgroundTransparency = 1
+	local nb = Instance.new("TextButton", it)
+	nb.Size = UDim2.new(1,-(indent*15+24),1,0) nb.Position = UDim2.new(0, indent*15+24, 0, 0)
+	nb.BackgroundColor3 = isRoot and Color3.fromRGB(70,70,70) or Color3.fromRGB(55,55,55)
+	nb.BackgroundTransparency = 0.5 nb.TextColor3 = Color3.fromRGB(240,240,240) nb.Text = ""
+	nb.TextXAlignment = Enum.TextXAlignment.Left nb.Font = Enum.Font.SourceSans nb.TextSize = 12
+	nb.ClipsDescendants = true
+	if selObj == t then
+		selNode = nb
+		nb.BackgroundColor3 = Color3.fromRGB(0,120,215) nb.BackgroundTransparency = 0.2
+	end
+	local lbl = Instance.new("TextLabel", nb)
+	lbl.Size = UDim2.new(1,-4,1,0) lbl.Position = UDim2.new(0,4,0,0)
+	lbl.BackgroundTransparency = 1
+	lbl.TextColor3 = Color3.fromRGB(240,240,240)
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.Font = Enum.Font.SourceSans lbl.TextSize = 12
+	lbl.ClipsDescendants = true lbl.TextTruncate = Enum.TextTruncate.AtEnd
+	if isRoot then
+		lbl.Text = "My Workspace"
+	else
+		lbl.Text = t.Name.." ("..t.ClassName..")"
+	end
+	nb.MouseButton1Click:Connect(function() selectObj(t, nb) end)
+	local ab = Instance.new("TextButton", it)
+	ab.Size = UDim2.new(0,20,1,0) ab.Position = UDim2.new(0, indent*15, 0, 0)
+	ab.BackgroundColor3 = Color3.fromRGB(0,120,215) ab.TextColor3 = Color3.fromRGB(255,255,255)
+	ab.Font = Enum.Font.SourceSansBold ab.TextSize = 13 ab.Text = "+"
+	ab.MouseButton1Click:Connect(function()
+		local ap, as = ab.AbsolutePosition, ab.AbsoluteSize
+		showMenu(t, UDim2.new(0, ap.X + as.X + 5, 0, ap.Y))
+	end)
+	local ch = {}
+	for _, c in ipairs(t:GetChildren()) do
+		if c.Name ~= "SelectionBoxOverlay" and c.Name ~= "DragScript" and c.Name ~= "RainbowScript" then
+			table.insert(ch, c)
+		end
+	end
+	if expStates[t] == nil then expStates[t] = true end
+	if #ch > 0 and expStates[t] then
+		for _, c in ipairs(ch) do createNode(c, indent+1, false) end
+	end
+end
+
+renderTree = function()
+	for _, c in ipairs(scroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+	createNode(UserFolder, 0, true)
+end
+
+for _, d in ipairs(UserFolder:GetDescendants()) do
+	if d:GetAttribute("RainbowEnabled") and d:IsA("GuiObject") then connectRB(d) end
+end
+
+saveState()
+renderTree()
