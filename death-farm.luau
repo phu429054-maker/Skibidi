@@ -10,7 +10,7 @@ local Services = setmetatable({}, {
 
 local QueueTeleport = queue_on_teleport or queueonteleport
 local TeleportCode = [==[
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/phu429054-maker/Skibidi/refs/heads/main/death-farm.luau"))()
 ]==]
 
 local LocalPlayer = Services.Players.LocalPlayer
@@ -79,7 +79,7 @@ if game.PlaceId ~= 6839171747 then
 		end
 
 		local QueueTeleport = queue_on_teleport or queueonteleport
-		QueueTeleport([=[    ]=])
+		QueueTeleport([=[loadstring(game:HttpGet("https://raw.githubusercontent.com/phu429054-maker/Skibidi/refs/heads/main/death-farm.luau"))()]=])
 
 		SendCaption("Joining a run...")
 		RemotesFolder.CreateElevator:FireServer({
